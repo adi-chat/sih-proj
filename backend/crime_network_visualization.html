@@ -1,0 +1,1049 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 100%;
+                 background-color: #09090b;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 1.2, "color": {"background": "#332617", "border": "#b45309", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 0, "label": "SUSPECT\nRJX KMR", "margin": 10, "shape": "box", "size": 22, "title": "Target: RJX KMR\nType: SUSPECT\nRef: Rajesh Kumar\nCentrality: 0.0000"}, {"borderWidth": 1.2, "color": {"background": "#332617", "border": "#b45309", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 1, "label": "SUSPECT\nANL XRM", "margin": 10, "shape": "box", "size": 31, "title": "Target: ANL XRM\nType: SUSPECT\nRef: Anil Sharma\nCentrality: 0.2500"}, {"borderWidth": 1.2, "color": {"background": "#2c1e38", "border": "#6b21a8", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 2, "label": "MULE ACCOUNT\nUnknown Telecom Target (+91-98765-43210)", "margin": 10, "shape": "box", "size": 36, "title": "Target: Unknown Telecom Target\nType: MULE ACCOUNT\nRef: 9876543210\nCentrality: 0.3333"}, {"borderWidth": 1.2, "color": {"background": "#332617", "border": "#b45309", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 3, "label": "SUSPECT\nFKRM SNK", "margin": 10, "shape": "box", "size": 22, "title": "Target: FKRM SNK\nType: SUSPECT\nRef: Vikram Singh\nCentrality: 0.0000"}, {"borderWidth": 1.2, "color": {"background": "#3b1723", "border": "#9f1239", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 4, "label": "ATM EXIT\nsingh@shellcorp", "margin": 10, "shape": "box", "size": 24, "title": "Target: Vikram Singh\nType: ATM EXIT\nRef: singh@shellcorp\nCentrality: 0.0000"}, {"borderWidth": 1.2, "color": {"background": "#2c1e38", "border": "#6b21a8", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 5, "label": "MULE ACCOUNT\nACC-001-RAJESH", "margin": 10, "shape": "box", "size": 22, "title": "Target: Rajesh Kumar\nType: MULE ACCOUNT\nRef: ACC-001-RAJESH\nCentrality: 0.0000"}, {"borderWidth": 1.2, "color": {"background": "#2c1e38", "border": "#6b21a8", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 6, "label": "MULE ACCOUNT\nACC-099-VIKRAM", "margin": 10, "shape": "box", "size": 36, "title": "Target: Vikram Singh\nType: MULE ACCOUNT\nRef: ACC-099-VIKRAM\nCentrality: 0.3333"}, {"borderWidth": 1.2, "color": {"background": "#2c1e38", "border": "#6b21a8", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 7, "label": "MULE ACCOUNT\nACC-555-SHELL", "margin": 10, "shape": "box", "size": 36, "title": "Target: Shell Logistics Escrow\nType: MULE ACCOUNT\nRef: ACC-555-SHELL\nCentrality: 0.3333"}, {"borderWidth": 1.2, "color": {"background": "#3b1723", "border": "#9f1239", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 8, "label": "ATM EXIT\nACC-888-OFFSHORE", "margin": 10, "shape": "box", "size": 24, "title": "Target: Offshore Settlement Escrow\nType: ATM EXIT\nRef: ACC-888-OFFSHORE\nCentrality: 0.0000"}, {"borderWidth": 1.2, "color": {"background": "#162836", "border": "#0369a1", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 9, "label": "PHONE\n+91-91234-56789", "margin": 10, "shape": "box", "size": 20, "title": "Target: Unknown Telecom Target\nType: PHONE\nRef: 9123456789\nCentrality: 0.0000"}, {"borderWidth": 1.2, "color": {"background": "#3b1723", "border": "#9f1239", "highlight": {"background": "#3f3f46", "border": "#ffffff"}}, "font": {"color": "#e4e4e7"}, "id": 10, "label": "ATM EXIT\nUnknown Telecom Target", "margin": 10, "shape": "box", "size": 24, "title": "Target: Unknown Telecom Target\nType: ATM EXIT\nRef: 9988776655\nCentrality: 0.0000"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#475569", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 0, "label": "Co-Accused", "title": "Syndicate co-accused association", "to": 1, "width": 1.3}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 1, "label": "Fund Transfer", "title": "Financial Transfer: INR 1 logged", "to": 2, "width": 2.0}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 2, "label": "Fund Transfer", "title": "Financial Transfer: INR 5 logged", "to": 9, "width": 2.0}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 2, "label": "Fund Transfer", "title": "Financial Transfer: INR 8 logged", "to": 10, "width": 2.0}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 3, "label": "Fund Transfer", "title": "Financial Transfer: INR 1 logged", "to": 4, "width": 2.0}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 5, "label": "Fund Transfer (INR 150,000)", "title": "Financial Transfer: INR 150,000 logged", "to": 6, "width": 2.0}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 6, "label": "Fund Transfer (INR 145,000)", "title": "Financial Transfer: INR 145,000 logged", "to": 7, "width": 2.0}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 7, "label": "Fund Transfer (INR 140,000)", "title": "Financial Transfer: INR 140,000 logged", "to": 8, "width": 2.0}, {"arrows": "to", "color": "#dc2626", "font": {"color": "#cbd5e1", "face": "IBM Plex Sans, sans-serif", "size": 9.5, "strokeColor": "#09090b", "strokeWidth": 2.5}, "from": 9, "label": "Fund Transfer", "title": "Financial Transfer: INR 2 logged", "to": 10, "width": 2.0}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "barnesHut": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.18,
+            "damping": 0.95,
+            "gravitationalConstant": -6500,
+            "springConstant": 0.04,
+            "springLength": 190
+        },
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    background-color: #09090b !important;
+    font-family: 'JetBrains Mono', 'IBM Plex Sans', monospace !important;
+}
+.card, .card-body {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background-color: transparent !important;
+    width: 100vw !important;
+    height: 100vh !important;
+}
+#mynetwork {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: #09090b !important;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) !important;
+    background-size: 24px 24px !important;
+    border: none !important;
+}
+.vis-tooltip {
+    background: #0d1117 !important;
+    border: 1px solid #30363d !important;
+    color: #e6edf3 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85) !important;
+}
+</style>
+
+<script type="text/javascript">
+function initWhenReady() {
+  if (typeof network === 'undefined' || typeof nodes === 'undefined' || typeof edges === 'undefined') {
+    setTimeout(initWhenReady, 50);
+    return;
+  }
+
+  var canonicalNodes = new Map();
+  var canonicalEdges = [];
+  var hiddenNodeIds = new Set();
+  var nodePositions = {};
+  var degreeMap = {};
+
+  nodes.get().forEach(function(n) {
+    canonicalNodes.set(n.id, Object.assign({}, n));
+  });
+  canonicalEdges = edges.get().map(function(e) {
+    return Object.assign({}, e);
+  });
+
+  function recalculateDegrees() {
+    degreeMap = {};
+    var allN = nodes.get();
+    var allE = edges.get();
+    allN.forEach(function(n) { 
+      degreeMap[n.id] = { in: 0, out: 0, total: 0 }; 
+    });
+    allE.forEach(function(e) {
+      if (degreeMap[e.from]) { degreeMap[e.from].out++; degreeMap[e.from].total++; }
+      if (degreeMap[e.to]) { degreeMap[e.to].in++; degreeMap[e.to].total++; }
+    });
+  }
+  recalculateDegrees();
+
+  var textTruncationCache = new Map();
+  function truncateText(ctx, text, maxW) {
+    if (!text) return '';
+    var cacheKey = text + '|' + Math.round(maxW);
+    if (textTruncationCache.has(cacheKey)) {
+      return textTruncationCache.get(cacheKey);
+    }
+    if (ctx.measureText(text).width <= maxW) {
+      textTruncationCache.set(cacheKey, text);
+      return text;
+    }
+    var low = 0, high = text.length;
+    while (low < high) {
+      var mid = (low + high) >> 1;
+      if (ctx.measureText(text.slice(0, mid) + '...').width <= maxW) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    var res = text.slice(0, Math.max(0, low - 1)) + '...';
+    if (textTruncationCache.size > 1500) textTruncationCache.clear();
+    textTruncationCache.set(cacheKey, res);
+    return res;
+  }
+
+  function drawChamferedBadge(ctx, x, y, w, h, cut) {
+    ctx.beginPath();
+    ctx.moveTo(x + cut, y);
+    ctx.lineTo(x + w - cut, y);
+    ctx.lineTo(x + w, y + cut);
+    ctx.lineTo(x + w, y + h - cut);
+    ctx.lineTo(x + w - cut, y + h);
+    ctx.lineTo(x + cut, y + h);
+    ctx.lineTo(x, y + h - cut);
+    ctx.lineTo(x, y + cut);
+    ctx.closePath();
+  }
+
+  function drawReticles(ctx, x, y, w, h, color) {
+    var pad = 6;
+    var len = 8;
+    var l = x - pad, r = x + w + pad;
+    var t = y - pad, b = y + h + pad;
+    ctx.strokeStyle = color || '#38bdf8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(l, t + len); ctx.lineTo(l, t); ctx.lineTo(l + len, t);
+    ctx.moveTo(r - len, t); ctx.lineTo(r, t); ctx.lineTo(r, t + len);
+    ctx.moveTo(l, b - len); ctx.lineTo(l, b); ctx.lineTo(l + len, b);
+    ctx.moveTo(r - len, b); ctx.lineTo(r, b); ctx.lineTo(r, b - len);
+    ctx.stroke();
+  }
+
+  function tacticalNodeRenderer(payload) {
+    var ctx = payload.ctx;
+    var id = payload.id;
+    var posX = payload.x;
+    var posY = payload.y;
+    var state = payload.state || {};
+    
+    var isSelected = Boolean(state.selected) || (typeof network !== 'undefined' && network.getSelectedNodes && network.getSelectedNodes().indexOf(id) !== -1);
+    var isHovered = Boolean(state.hover);
+    var zoom = (typeof network !== 'undefined' && network.getScale) ? network.getScale() : 1.0;
+    
+    var nodeObj = nodes.get(id) || canonicalNodes.get(id) || {};
+    var rawLabel = nodeObj.label || ('NODE ' + id);
+    var parts = rawLabel.split('\n');
+    var entityType = parts[0] ? parts[0].trim().toUpperCase() : 'ENTITY';
+    var mainText = parts.slice(1).join(' ').trim() || rawLabel;
+    var rawColor = (nodeObj.color && nodeObj.color.border) ? nodeObj.color.border : '#38bdf8';
+
+    var rawTitle = nodeObj.title || '';
+    var centralityVal = 0.0;
+    var explicitRole = '';
+
+    if (rawTitle.indexOf('Centrality:') !== -1) {
+      centralityVal = parseFloat(rawTitle.split('Centrality:')[1].split('\n')[0].trim()) || 0.0;
+    }
+    if (rawTitle.indexOf('Role:') !== -1) {
+      explicitRole = rawTitle.split('Role:')[1].split('\n')[0].trim();
+    }
+
+    var w, h;
+    var lodLevel = 2;
+
+    if (isSelected) {
+      lodLevel = 2;
+      w = 230;
+      h = 92;
+    } else if (zoom < 0.35) {
+      lodLevel = 0;
+      w = 22;
+      h = 22;
+    } else if (zoom < 1.35) {
+      lodLevel = 1;
+      w = 155;
+      h = 34;
+    } else {
+      lodLevel = 2;
+      w = 230;
+      h = 92;
+    }
+
+    return {
+      nodeDimensions: { width: w, height: h },
+      drawNode: function() {
+        var topX = posX - w / 2;
+        var topY = posY - h / 2;
+        var deg = degreeMap[id] || { in: 0, out: 0, total: 0 };
+        var isSpecial = (id === 888888 || entityType.indexOf('MASTERMIND') !== -1 || entityType.indexOf('ATM') !== -1 || entityType.indexOf('FIR') !== -1);
+        var pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.0035);
+
+        ctx.save();
+
+        if (lodLevel === 0) {
+          ctx.beginPath();
+          ctx.arc(posX, posY, 7, 0, Math.PI * 2);
+          ctx.fillStyle = rawColor;
+          ctx.fill();
+
+          if (isHovered || isSelected || isSpecial) {
+            ctx.beginPath();
+            ctx.arc(posX, posY, 12, 0, Math.PI * 2);
+            ctx.strokeStyle = isSelected ? '#ffffff' : rawColor;
+            ctx.lineWidth = isSelected ? (1.5 + 1.2 * pulse) : 2;
+            ctx.stroke();
+          }
+          ctx.restore();
+          return;
+        }
+
+        if (lodLevel === 1) {
+          var cut = 6;
+          drawChamferedBadge(ctx, topX, topY, w, h, cut);
+          ctx.fillStyle = 'rgba(12, 17, 26, 0.95)';
+          ctx.fill();
+
+          if (isSelected) {
+            ctx.lineWidth = 1.4 + 1.2 * pulse;
+            ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.70 + 0.30 * pulse).toFixed(2) + ')';
+            ctx.shadowColor = 'rgba(255, 255, 255, ' + (0.35 + 0.45 * pulse).toFixed(2) + ')';
+            ctx.shadowBlur = 4 + 10 * pulse;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          } else {
+            ctx.lineWidth = 1.0;
+            ctx.strokeStyle = isHovered ? rawColor : '#27272a';
+            ctx.stroke();
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(topX + cut, topY);
+          ctx.lineTo(topX + w - cut, topY);
+          ctx.strokeStyle = rawColor;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(topX + 11, topY + h / 2, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#00FF9D';
+          ctx.fill();
+
+          ctx.font = "600 11px 'JetBrains Mono', monospace";
+          ctx.fillStyle = '#f8fafc';
+          ctx.textBaseline = 'middle';
+          var t = truncateText(ctx, mainText, w - 32);
+          ctx.fillText(t, topX + 22, topY + h / 2);
+
+          if (isSelected) drawReticles(ctx, topX, topY, w, h, rawColor);
+          ctx.restore();
+          return;
+        }
+
+        var cut2 = 9;
+        drawChamferedBadge(ctx, topX, topY, w, h, cut2);
+        ctx.fillStyle = isSelected ? 'rgba(10, 16, 26, 0.98)' : 'rgba(9, 13, 21, 0.95)';
+        ctx.fill();
+
+        if (isSelected) {
+          ctx.lineWidth = 1.4 + 1.2 * pulse;
+          ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.75 + 0.25 * pulse).toFixed(2) + ')';
+          ctx.shadowColor = 'rgba(255, 255, 255, ' + (0.45 + 0.45 * pulse).toFixed(2) + ')';
+          ctx.shadowBlur = 6 + 12 * pulse;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        } else {
+          ctx.lineWidth = 1.1;
+          ctx.strokeStyle = isHovered ? rawColor : '#27272a';
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(topX + cut2, topY);
+        ctx.lineTo(topX + w - cut2, topY);
+        ctx.strokeStyle = rawColor;
+        ctx.lineWidth = 3.2;
+        ctx.stroke();
+
+        ctx.textBaseline = 'top';
+        ctx.font = "700 9px 'JetBrains Mono', monospace";
+        ctx.fillStyle = rawColor;
+        ctx.fillText(entityType, topX + 10, topY + 8);
+
+        var btnSize = 13;
+        var btnX = topX + w - btnSize - 9;
+        var btnY = topY + 6;
+
+        ctx.beginPath();
+        ctx.rect(btnX, btnY, btnSize, btnSize);
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.45)';
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(btnX + 3.5, btnY + 3.5);
+        ctx.lineTo(btnX + btnSize - 3.5, btnY + btnSize - 3.5);
+        ctx.moveTo(btnX + btnSize - 3.5, btnY + 3.5);
+        ctx.lineTo(btnX + 3.5, btnY + btnSize - 3.5);
+        ctx.strokeStyle = '#fca5a5';
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#00FF9D';
+        ctx.font = "600 7.5px 'JetBrains Mono', monospace";
+        var secText = "SEC 63 VERIFIED";
+        var secW = ctx.measureText(secText).width;
+        ctx.fillText(secText, btnX - secW - 8, topY + 9);
+
+        ctx.beginPath();
+        ctx.moveTo(topX, topY + 22);
+        ctx.lineTo(topX + w, topY + 22);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = "700 12px 'JetBrains Mono', monospace";
+        ctx.fillStyle = '#ffffff';
+        var displayTitle = truncateText(ctx, mainText, w - 20);
+        ctx.fillText(displayTitle, topX + 10, topY + 28);
+
+        ctx.font = "600 8.5px 'JetBrains Mono', monospace";
+        var tacticalRole = explicitRole;
+        var roleColor = "#cbd5e1";
+        var roleBadge = "ACTIVE LINK";
+        var badgeBg = "rgba(39, 39, 42, 0.6)";
+        var badgeBorder = "#3f3f46";
+        var badgeColor = "#e4e4e7";
+
+        if (entityType.indexOf('MASTERMIND') !== -1) {
+          tacticalRole = "CRITICAL APEX"; roleColor = "#ef4444";
+          roleBadge = "TIER-1 KINGPIN"; badgeBg = "rgba(239, 68, 68, 0.15)"; badgeBorder = "#b91c1c"; badgeColor = "#fca5a5";
+        } else if (entityType.indexOf('ATM') !== -1) {
+          tacticalRole = "CASH-OUT TERMINAL"; roleColor = "#f43f5e";
+          roleBadge = "SHATTER EXIT"; badgeBg = "rgba(244, 63, 94, 0.15)"; badgeBorder = "#be123c"; badgeColor = "#fda4af";
+        } else if (entityType.indexOf('MULE') !== -1) {
+          tacticalRole = "PMLA FAN-OUT"; roleColor = "#c084fc";
+          roleBadge = "MULE ACCOUNT"; badgeBg = "rgba(192, 132, 252, 0.15)"; badgeBorder = "#7e22ce"; badgeColor = "#e9d5ff";
+        } else if (entityType.indexOf('COMPLAINANT') !== -1 || id === 888888) {
+          tacticalRole = "WITNESS / VICTIM"; roleColor = "#34d399";
+          roleBadge = "PROTECTED"; badgeBg = "rgba(52, 211, 153, 0.15)"; badgeBorder = "#059669"; badgeColor = "#a7f3d0";
+        } else if (entityType.indexOf('PHONE') !== -1) {
+          tacticalRole = "COVERT TERMINAL"; roleColor = "#38bdf8";
+          roleBadge = deg.total > 2 ? "INTERCEPT HUB" : "BURNER SIM"; 
+          badgeBg = "rgba(56, 189, 248, 0.15)"; badgeBorder = "#0284c7"; badgeColor = "#bae6fd";
+        } else if (entityType.indexOf('VEHICLE') !== -1) {
+          tacticalRole = "LOGISTICS RELAY"; roleColor = "#94a3b8";
+          roleBadge = "MOTOR CARRIER"; badgeBg = "rgba(148, 163, 184, 0.15)"; badgeBorder = "#475569"; badgeColor = "#cbd5e1";
+        } else if (entityType.indexOf('FIR') !== -1) {
+          tacticalRole = "STATUTORY CASE"; roleColor = "#38bdf8";
+          roleBadge = "COURT COGNIZED"; badgeBg = "rgba(56, 189, 248, 0.15)"; badgeBorder = "#0284c7"; badgeColor = "#bae6fd";
+        } else {
+          if (deg.in > 0 && deg.out > 0) {
+            tacticalRole = "SYNDICATE BROKER"; roleColor = "#f59e0b";
+            roleBadge = "COMMUNICATION HUB"; badgeBg = "rgba(245, 158, 11, 0.15)"; badgeBorder = "#d97706"; badgeColor = "#fde68a";
+          } else if (deg.out >= 2) {
+            tacticalRole = "BAIL SURETY"; roleColor = "#f59e0b";
+            roleBadge = "SURETY BOND"; badgeBg = "rgba(245, 158, 11, 0.15)"; badgeBorder = "#d97706"; badgeColor = "#fde68a";
+          } else {
+            tacticalRole = "CO-ACCUSED"; roleColor = "#cbd5e1";
+            roleBadge = "CHARGESHEETED"; badgeBg = "rgba(71, 85, 105, 0.25)"; badgeBorder = "#475569"; badgeColor = "#e2e8f0";
+          }
+        }
+
+        ctx.fillStyle = roleColor;
+        ctx.fillText(tacticalRole, topX + 10, topY + 46);
+
+        ctx.font = "700 8px 'JetBrains Mono', monospace";
+        var badgeTextW = ctx.measureText(roleBadge).width;
+        var badgeW = badgeTextW + 10;
+        var badgeH = 14;
+        var bX = topX + w - badgeW - 10;
+        var bY = topY + 44;
+
+        ctx.fillStyle = badgeBg;
+        ctx.fillRect(bX, bY, badgeW, badgeH);
+        ctx.strokeStyle = badgeBorder;
+        ctx.lineWidth = 1.0;
+        ctx.strokeRect(bX, bY, badgeW, badgeH);
+
+        ctx.fillStyle = badgeColor;
+        ctx.fillText(roleBadge, bX + 5, bY + 3);
+
+        ctx.beginPath();
+        ctx.moveTo(topX, topY + 63);
+        ctx.lineTo(topX + w, topY + 63);
+        ctx.strokeStyle = '#1e293b';
+        ctx.stroke();
+
+        ctx.font = "600 8.5px 'JetBrains Mono', monospace";
+        ctx.fillStyle = '#94a3b8';
+        var flowText = "FLOW: IN " + deg.in + " | OUT " + deg.out;
+        ctx.fillText(flowText, topX + 10, topY + 70);
+
+        var calcRisk = 0;
+        if (entityType.indexOf('MASTERMIND') !== -1) calcRisk = 96.0;
+        else if (entityType.indexOf('ATM') !== -1) calcRisk = 92.5;
+        else if (entityType.indexOf('MULE') !== -1) calcRisk = 84.0;
+        else if (entityType.indexOf('COMPLAINANT') !== -1 || id === 888888) calcRisk = 0.0;
+        else calcRisk = Math.min(94.0, Math.max(15.0, Math.round((centralityVal * 80 + (deg.total * 6.5)) * 10) / 10));
+
+        var riskStr = "RISK: " + calcRisk.toFixed(1) + "%";
+        var riskStrW = ctx.measureText(riskStr).width;
+        ctx.fillStyle = (calcRisk >= 75) ? '#ef4444' : (calcRisk >= 40 ? '#f59e0b' : '#10b981');
+        ctx.fillText(riskStr, topX + w - riskStrW - 10, topY + 70);
+
+        if (isSelected) {
+          drawReticles(ctx, topX, topY, w, h, rawColor);
+        }
+
+        ctx.restore();
+      }
+    };
+  }
+
+  function applyHexagonalConstellation() {
+    var allNodes = nodes.get();
+    var allEdges = edges.get();
+    if (!allNodes || allNodes.length === 0) return;
+    
+    var degrees = {};
+    allNodes.forEach(function(n) { degrees[n.id] = 0; });
+    allEdges.forEach(function(e) {
+      if (degrees[e.from] !== undefined) degrees[e.from]++;
+      if (degrees[e.to] !== undefined) degrees[e.to]++;
+    });
+
+    var hubNode = allNodes[0];
+    var maxDeg = -1;
+    allNodes.forEach(function(n) {
+      var deg = degrees[n.id] || 0;
+      if (deg > maxDeg) {
+        maxDeg = deg;
+        hubNode = n;
+      }
+    });
+
+    var queue = [hubNode.id];
+    var distance = {};
+    distance[hubNode.id] = 0;
+    var visited = new Set([hubNode.id]);
+    var adj = {};
+    allNodes.forEach(function(n) { adj[n.id] = []; });
+    allEdges.forEach(function(e) {
+      if (adj[e.from]) adj[e.from].push(e.to);
+      if (adj[e.to]) adj[e.to].push(e.from);
+    });
+
+    while (queue.length > 0) {
+      var curr = queue.shift();
+      var neighbors = adj[curr] || [];
+      for (var j = 0; j < neighbors.length; j++) {
+        var nxt = neighbors[j];
+        if (!visited.has(nxt)) {
+          visited.add(nxt);
+          distance[nxt] = distance[curr] + 1;
+          queue.push(nxt);
+        }
+      }
+    }
+
+    allNodes.forEach(function(n) {
+      if (distance[n.id] === undefined) distance[n.id] = 2;
+    });
+
+    var rings = {};
+    allNodes.forEach(function(n) {
+      var d = distance[n.id];
+      if (!rings[d]) rings[d] = [];
+      rings[d].push(n);
+    });
+
+    var updates = [];
+    updates.push({ id: hubNode.id, x: 0, y: 0 });
+    var baseRadius = 360;
+
+    Object.keys(rings).forEach(function(dStr) {
+      var d = parseInt(dStr);
+      if (d === 0) return;
+      var ringNodes = rings[d];
+      var count = ringNodes.length;
+      var nominalR = Math.max(d * baseRadius, count * 52);
+      ringNodes.sort(function(a, b) {
+        var labelA = (a.label || '').split('\n')[0];
+        var labelB = (b.label || '').split('\n')[0];
+        return labelA.localeCompare(labelB);
+      });
+
+      for (var i = 0; i < count; i++) {
+        var angleOffset = (d % 2 === 1) ? 0 : (Math.PI / 6);
+        var angle = (i * (2 * Math.PI / count)) + angleOffset;
+        var facet = Math.PI / 3;
+        var relAngle = ((angle % facet) + facet) % facet - (facet / 2);
+        var hexR = nominalR * (Math.cos(facet / 2) / Math.cos(relAngle));
+        var finalR = (hexR * 0.75) + (nominalR * 0.25);
+        updates.push({
+          id: ringNodes[i].id,
+          x: Math.round(finalR * Math.cos(angle)),
+          y: Math.round(finalR * Math.sin(angle))
+        });
+      }
+    });
+
+    nodes.update(updates);
+    network.setOptions({
+      physics: { enabled: false },
+      edges: { smooth: { enabled: true, type: "continuous", roundness: 0.15 } }
+    });
+
+    setTimeout(function() {
+      network.fit({ animation: { duration: 700, easingFunction: 'easeInOutQuad' } });
+    }, 120);
+  }
+  applyHexagonalConstellation();
+
+  network.setOptions({
+    interaction: {
+      hover: true,
+      selectConnectedEdges: false,
+      hoverConnectedEdges: false
+    },
+    edges: {
+      selectionWidth: 0,
+      hoverWidth: 0
+    },
+    nodes: {
+      shape: 'custom',
+      ctxRenderer: tacticalNodeRenderer
+    }
+  });
+
+  var shapeUpdates = nodes.get().map(function(n) {
+    return { id: n.id, shape: 'custom' };
+  });
+  nodes.update(shapeUpdates);
+
+  function removeNodeFromActiveGraph(nodeId) {
+    if (nodeId === undefined || nodeId === null) return;
+    var nId = (isNaN(nodeId) ? nodeId : Number(nodeId));
+    
+    if (network.getPositions) {
+      var curPos = network.getPositions([nId])[nId];
+      if (curPos) {
+        nodePositions[nId] = { x: Math.round(curPos.x), y: Math.round(curPos.y) };
+      }
+    }
+    
+    hiddenNodeIds.add(nId);
+
+    var nodeObj = canonicalNodes.get(nId) || nodes.get(nId) || {};
+    var rawLabel = nodeObj.label || ('NODE ' + nId);
+    var parts = rawLabel.split('\n');
+    var entityType = parts[0] ? parts[0].trim().toUpperCase() : 'ENTITY';
+    var mainText = parts.slice(1).join(' ').trim() || rawLabel;
+    var deg = degreeMap[nId] || { in: 0, out: 0, total: 0 };
+    var rawTitle = nodeObj.title || '';
+    var centralityVal = 0.0;
+    if (rawTitle.indexOf('Centrality:') !== -1) {
+      centralityVal = parseFloat(rawTitle.split('Centrality:')[1].split('\n')[0].trim()) || 0.0;
+    }
+
+    var calcRisk = Math.min(96.0, Math.max(15.0, Math.round((centralityVal * 80 + (deg.total * 6.5)) * 10) / 10));
+    if (entityType.indexOf('COMPLAINANT') !== -1 || nId === 888888) calcRisk = 0.0;
+
+    var nodeData = {
+      id: nId,
+      name: mainText,
+      type: entityType,
+      riskScore: calcRisk.toFixed(1),
+      status: 'STAGED IN INVENTORY',
+      district: (rawTitle.indexOf('Jurisdiction:') !== -1) ? rawTitle.split('Jurisdiction:')[1].split('\n')[0].trim() : 'Pan-India Grid'
+    };
+
+    nodes.remove(nId);
+    network.unselectAll();
+    recalculateDegrees();
+    network.redraw();
+
+    window.parent.postMessage({
+      type: "NODE_REMOVED",
+      payload: nodeData
+    }, "*");
+  }
+
+  function restoreNodeToActiveGraph(nodeId) {
+    if (nodeId === undefined || nodeId === null) return;
+    var nId = (isNaN(nodeId) ? nodeId : Number(nodeId));
+    if (!hiddenNodeIds.has(nId)) return;
+
+    hiddenNodeIds.delete(nId);
+    var baseNode = canonicalNodes.get(nId);
+    if (!baseNode) return;
+
+    var nodeToAdd = Object.assign({}, baseNode);
+    if (nodePositions[nId]) {
+      nodeToAdd.x = nodePositions[nId].x;
+      nodeToAdd.y = nodePositions[nId].y;
+    }
+    nodeToAdd.shape = 'custom';
+    nodes.add(nodeToAdd);
+
+    var edgesToAdd = [];
+    for (var i = 0; i < canonicalEdges.length; i++) {
+      var e = canonicalEdges[i];
+      if (e.from == nId || e.to == nId) {
+        var otherEnd = (e.from == nId ? e.to : e.from);
+        if (!hiddenNodeIds.has(otherEnd) && nodes.get(otherEnd)) {
+          if (!edges.get(e.id)) {
+            edgesToAdd.push(e);
+          }
+        }
+      }
+    }
+    if (edgesToAdd.length > 0) {
+      edges.add(edgesToAdd);
+    }
+
+    recalculateDegrees();
+    network.selectNodes([nId]);
+    sendNodeTelemetry(nId);
+    checkAndStartBreathing();
+    network.redraw();
+  }
+
+  function restoreAllNodesToActiveGraph() {
+    var toRestore = Array.from(hiddenNodeIds);
+    for (var i = 0; i < toRestore.length; i++) {
+      var nId = toRestore[i];
+      hiddenNodeIds.delete(nId);
+      var baseNode = canonicalNodes.get(nId);
+      if (baseNode && !nodes.get(nId)) {
+        var nodeToAdd = Object.assign({}, baseNode);
+        if (nodePositions[nId]) {
+          nodeToAdd.x = nodePositions[nId].x;
+          nodeToAdd.y = nodePositions[nId].y;
+        }
+        nodeToAdd.shape = 'custom';
+        nodes.add(nodeToAdd);
+      }
+    }
+    var edgesToAdd = [];
+    for (var j = 0; j < canonicalEdges.length; j++) {
+      var ce = canonicalEdges[j];
+      if (!hiddenNodeIds.has(ce.from) && !hiddenNodeIds.has(ce.to)) {
+        if (!edges.get(ce.id)) {
+          edgesToAdd.push(ce);
+        }
+      }
+    }
+    if (edgesToAdd.length > 0) edges.add(edgesToAdd);
+    recalculateDegrees();
+    network.redraw();
+  }
+
+  function isRemoveButtonClicked(pointer) {
+    if (!pointer || !pointer.canvas || typeof network.getPositions !== 'function') return null;
+    var cx = pointer.canvas.x;
+    var cy = pointer.canvas.y;
+    var allPositions = network.getPositions();
+    var zoom = (network.getScale ? network.getScale() : 1.0);
+    var selectedNodes = (network.getSelectedNodes ? network.getSelectedNodes() : []);
+
+    for (var idStr in allPositions) {
+      var nid = isNaN(idStr) ? idStr : Number(idStr);
+      var isSel = selectedNodes.indexOf(nid) !== -1;
+      
+      var nw, nh;
+      if (isSel || zoom >= 1.35) {
+        nw = 230; nh = 92;
+      } else if (zoom < 0.35) {
+        nw = 22; nh = 22;
+      } else {
+        nw = 155; nh = 34;
+      }
+
+      if (!isSel && zoom < 1.35) continue;
+
+      var pos = allPositions[idStr];
+      var topX = pos.x - nw / 2;
+      var topY = pos.y - nh / 2;
+
+      var btnSize = 13;
+      var btnX = topX + nw - btnSize - 9;
+      var btnY = topY + 6;
+
+      if (cx >= btnX - 5 && cx <= btnX + btnSize + 5 &&
+          cy >= btnY - 5 && cy <= btnY + btnSize + 5) {
+        return nid;
+      }
+    }
+    return null;
+  }
+
+  function findNodeAtPointer(pointer) {
+    if (!pointer) return null;
+    if (typeof network.getNodeAt === 'function' && pointer.DOM) {
+      var directId = network.getNodeAt(pointer.DOM);
+      if (directId !== undefined && directId !== null) return directId;
+    }
+    if (!pointer.canvas || typeof network.getPositions !== 'function') return null;
+    var cx = pointer.canvas.x;
+    var cy = pointer.canvas.y;
+    var allPositions = network.getPositions();
+    var zoom = (network.getScale ? network.getScale() : 1.0);
+    var selectedNodes = (network.getSelectedNodes ? network.getSelectedNodes() : []);
+    
+    var bestNodeId = null;
+    var minDistanceSq = Infinity;
+    
+    for (var idStr in allPositions) {
+      var pos = allPositions[idStr];
+      var nid = isNaN(idStr) ? idStr : Number(idStr);
+      var isSel = selectedNodes.indexOf(nid) !== -1;
+      
+      var nw = isSel ? 230 : (zoom < 0.35 ? 22 : (zoom < 1.35 ? 155 : 230));
+      var nh = isSel ? 92 : (zoom < 0.35 ? 22 : (zoom < 1.35 ? 34 : 92));
+      
+      var hw = (nw / 2) + 12;
+      var hh = (nh / 2) + 12;
+      
+      if (cx >= pos.x - hw && cx <= pos.x + hw && cy >= pos.y - hh && cy <= pos.y + hh) {
+        var dx = cx - pos.x;
+        var dy = cy - pos.y;
+        var distSq = dx * dx + dy * dy;
+        if (distSq < minDistanceSq) {
+          minDistanceSq = distSq;
+          bestNodeId = nid;
+        }
+      }
+    }
+    return bestNodeId;
+  }
+
+  function sendNodeTelemetry(clickedId) {
+    var nodeObj = (typeof nodes !== 'undefined' && nodes.get) ? nodes.get(clickedId) : null;
+    window.parent.postMessage({
+      type: "NODE_CLICK",
+      payload: clickedId,
+      nodeData: nodeObj
+    }, "*");
+  }
+
+  var isBreathing = false;
+  var lastRedrawTime = 0;
+  function breathingLoop(time) {
+    if (typeof network !== 'undefined') {
+      var selectedNodes = (network.getSelectedNodes ? network.getSelectedNodes() : []);
+      if (selectedNodes.length > 0) {
+        if (time - lastRedrawTime >= 33) {
+          lastRedrawTime = time;
+          network.redraw();
+        }
+        requestAnimationFrame(breathingLoop);
+        return;
+      }
+    }
+    isBreathing = false;
+  }
+
+  function checkAndStartBreathing() {
+    if (!isBreathing) {
+      var selectedNodes = (typeof network !== 'undefined' && network.getSelectedNodes) ? network.getSelectedNodes() : [];
+      if (selectedNodes.length > 0) {
+        isBreathing = true;
+        requestAnimationFrame(breathingLoop);
+      }
+    }
+  }
+
+  network.off("click");
+  network.on("click", function(params) {
+    var removeTargetId = isRemoveButtonClicked(params.pointer);
+    if (removeTargetId !== null && removeTargetId !== undefined) {
+      removeNodeFromActiveGraph(removeTargetId);
+      return;
+    }
+
+    var targetId = (params.nodes && params.nodes.length > 0) ? params.nodes[0] : findNodeAtPointer(params.pointer);
+    if (targetId !== null && targetId !== undefined) {
+      network.selectNodes([targetId]);
+      sendNodeTelemetry(targetId);
+      checkAndStartBreathing();
+      network.redraw();
+    } else {
+      network.unselectAll();
+      window.parent.postMessage({ type: "CANVAS_CLICK" }, "*");
+      setTimeout(function() { network.redraw(); }, 15);
+    }
+  });
+
+  network.off("selectNode");
+  network.on("selectNode", function(params) {
+    if (params.node) sendNodeTelemetry(params.node);
+    setTimeout(checkAndStartBreathing, 15);
+  });
+
+  window.addEventListener("message", function(event) {
+    if (!event.data) return;
+    if (event.data.type === "RESTORE_NODE") {
+      restoreNodeToActiveGraph(event.data.payload);
+    } else if (event.data.type === "RESTORE_ALL_NODES") {
+      restoreAllNodesToActiveGraph();
+    } else if (event.data.type === "SET_HIDDEN_NODES") {
+      var arr = event.data.payload || [];
+      arr.forEach(function(nid) { removeNodeFromActiveGraph(nid); });
+    } else if (event.data.type === "FIT_VIEW") {
+      network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+    } else if (event.data.type === "HIGHLIGHT_PATH") {
+      var pNodes = event.data.payload || [];
+      if (pNodes.length === 0) return;
+      var pSet = new Set(pNodes);
+      var nodeUpdates = [];
+      nodes.forEach(function(n) {
+        if (pSet.has(n.id)) {
+          nodeUpdates.push({
+            id: n.id,
+            color: { background: "#854d0e", border: "#facc15" },
+            opacity: 1.0
+          });
+        } else {
+          nodeUpdates.push({ id: n.id, opacity: 0.12 });
+        }
+      });
+      nodes.update(nodeUpdates);
+      var edgeUpdates = [];
+      edges.forEach(function(e) {
+        var inPath = false;
+        for (var i = 0; i < pNodes.length - 1; i++) {
+          if ((e.from == pNodes[i] && e.to == pNodes[i+1]) || (e.from == pNodes[i+1] && e.to == pNodes[i])) {
+            inPath = true;
+            break;
+          }
+        }
+        if (inPath) {
+          edgeUpdates.push({ id: e.id, color: "#facc15", width: 3.5, opacity: 1.0 });
+        } else {
+          edgeUpdates.push({ id: e.id, opacity: 0.05 });
+        }
+      });
+      edges.update(edgeUpdates);
+    } else if (event.data.type === "HIGHLIGHT_CYCLES") {
+      var cycleNodes = event.data.payload || [];
+      if (cycleNodes.length === 0) return;
+      var cSet = new Set(cycleNodes);
+      var nodeUpdates = [];
+      nodes.forEach(function(n) {
+        if (cSet.has(n.id)) {
+          nodeUpdates.push({
+            id: n.id,
+            color: { background: "#581c87", border: "#c084fc" },
+            opacity: 1.0
+          });
+        } else {
+          nodeUpdates.push({ id: n.id, opacity: 0.12 });
+        }
+      });
+      nodes.update(nodeUpdates);
+      var edgeUpdates = [];
+      edges.forEach(function(e) {
+        if (cSet.has(e.from) && cSet.has(e.to)) {
+          edgeUpdates.push({ id: e.id, color: "#c084fc", width: 3.5, opacity: 1.0 });
+        } else {
+          edgeUpdates.push({ id: e.id, opacity: 0.05 });
+        }
+      });
+      edges.update(edgeUpdates);
+    } else if (event.data.type === "RESET_PATH") {
+      recalculateDegrees();
+      if (typeof drawGraph === 'function') drawGraph();
+      setTimeout(function() {
+        applyHexagonalConstellation();
+        network.setOptions({
+          interaction: { hover: true, selectConnectedEdges: false, hoverConnectedEdges: false },
+          edges: { selectionWidth: 0, hoverWidth: 0 },
+          nodes: { shape: 'custom', ctxRenderer: tacticalNodeRenderer }
+        });
+        var shapeReapply = nodes.get().map(function(n) { return { id: n.id, shape: 'custom' }; });
+        nodes.update(shapeReapply);
+        checkAndStartBreathing();
+      }, 150);
+    }
+  });
+}
+initWhenReady();
+</script>
+</body>
+</html>
