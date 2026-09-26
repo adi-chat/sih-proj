@@ -1,16 +1,15 @@
 import { useRef, useEffect } from 'react';
 
-const FALLBACK_RGB = { r: 16, g: 185, b: 129 }; // Emerald-500 fallback
+const FALLBACK_RGB = { r: 255, g: 255, b: 255 };
 
 const LetterGlitch = ({
-  glitchColors = ['#064e3b', '#059669', '#10b981', '#34d399', '#6ee7b7'],
+  glitchColors = ['#18181b', '#27272a', '#3f3f46', '#71717a', '#a1a1aa', '#e4e4e7', '#ffffff'],
   className = '',
-  glitchSpeed = 40,
+  glitchSpeed = 38,
   centerVignette = true,
   outerVignette = true,
   smooth = true,
-  lightMode = false,
-  backgroundColor = '#09090b',
+  backgroundColor = '#000000',
   characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>/?'
 }) => {
   const canvasRef = useRef(null);
@@ -21,10 +20,9 @@ const LetterGlitch = ({
   const lastGlitchTime = useRef(Date.now());
 
   const lettersAndSymbols = Array.from(characters);
-
-  const fontSize = 15;
-  const charWidth = 10;
-  const charHeight = 20;
+  const fontSize = 16;
+  const charWidth = 11;
+  const charHeight = 22;
 
   const getRandomChar = () => {
     return lettersAndSymbols[Math.floor(Math.random() * lettersAndSymbols.length)];
@@ -54,7 +52,6 @@ const LetterGlitch = ({
   });
 
   const rgbToCss = ({ r, g, b }) => `rgb(${r}, ${g}, ${b})`;
-
   const getRandomRgb = () => hexToRgb(getRandomColor()) || FALLBACK_RGB;
 
   const calculateGrid = (width, height) => {
@@ -86,10 +83,10 @@ const LetterGlitch = ({
 
     const dpr = window.devicePixelRatio || 1;
     const rect = parent.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
 
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
 
@@ -99,7 +96,6 @@ const LetterGlitch = ({
 
     const { columns, rows } = calculateGrid(rect.width, rect.height);
     initializeLetters(columns, rows);
-
     drawLetters();
   };
 
@@ -108,7 +104,7 @@ const LetterGlitch = ({
     const ctx = context.current;
     const { width, height } = canvasRef.current.getBoundingClientRect();
     ctx.clearRect(0, 0, width, height);
-    ctx.font = `${fontSize}px 'IBM Plex Mono', monospace`;
+    ctx.font = `${fontSize}px 'Chakra Petch', 'JetBrains Mono', monospace`;
     ctx.textBaseline = 'top';
 
     letters.current.forEach((letter, index) => {
@@ -121,7 +117,6 @@ const LetterGlitch = ({
 
   const updateLetters = () => {
     if (!letters.current || letters.current.length === 0) return;
-
     const updateCount = Math.max(1, Math.floor(letters.current.length * 0.06));
 
     for (let i = 0; i < updateCount; i++) {
@@ -147,7 +142,6 @@ const LetterGlitch = ({
       if (letter.colorProgress < 1) {
         letter.colorProgress += 0.05;
         if (letter.colorProgress > 1) letter.colorProgress = 1;
-
         letter.rgb = mixRgb(letter.fromRgb, letter.targetRgb, letter.colorProgress);
         needsRedraw = true;
       }
@@ -176,6 +170,7 @@ const LetterGlitch = ({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const parent = canvas.parentElement;
 
     context.current = canvas.getContext('2d');
     resizeCanvas();
@@ -188,14 +183,27 @@ const LetterGlitch = ({
         cancelAnimationFrame(animationRef.current);
         resizeCanvas();
         animate();
-      }, 100);
+      }, 40);
     };
+
+    // Tracks container flex resizing during inspector collapse/expand
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined' && parent) {
+      ro = new ResizeObserver(() => {
+        handleResize();
+      });
+      ro.observe(parent);
+    }
 
     window.addEventListener('resize', handleResize);
 
     return () => {
+      clearTimeout(resizeTimeout);
       cancelAnimationFrame(animationRef.current);
       window.removeEventListener('resize', handleResize);
+      if (ro) {
+        ro.disconnect();
+      }
     };
   }, [glitchSpeed, smooth]);
 
@@ -203,7 +211,7 @@ const LetterGlitch = ({
     position: 'relative',
     width: '100%',
     height: '100%',
-    backgroundColor: backgroundColor || '#09090b',
+    backgroundColor: backgroundColor || '#000000',
     overflow: 'hidden'
   };
 
@@ -220,7 +228,7 @@ const LetterGlitch = ({
     width: '100%',
     height: '100%',
     pointerEvents: 'none',
-    background: 'radial-gradient(circle, rgba(9,9,11,0.2) 40%, rgba(9,9,11,0.95) 100%)'
+    background: 'radial-gradient(circle, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.98) 100%)'
   };
 
   const centerVignetteStyle = {
@@ -230,7 +238,7 @@ const LetterGlitch = ({
     width: '100%',
     height: '100%',
     pointerEvents: 'none',
-    background: 'radial-gradient(circle, rgba(9,9,11,0.85) 0%, rgba(9,9,11,0) 65%)'
+    background: 'radial-gradient(circle, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 65%)'
   };
 
   return (

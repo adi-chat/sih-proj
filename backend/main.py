@@ -181,7 +181,7 @@ ACTIVE_INVESTIGATION_SESSIONS: Dict[str, dict] = {}
 DARK_NETWORK_THEME = """
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,700&display=swap" rel="stylesheet">
 <style>
 html, body {
     margin: 0 !important;
@@ -189,8 +189,8 @@ html, body {
     width: 100% !important;
     height: 100% !important;
     overflow: hidden !important;
-    background-color: #09090b !important;
-    font-family: 'JetBrains Mono', 'IBM Plex Sans', monospace !important;
+    background-color: transparent !important;
+    font-family: 'Chakra Petch', sans-serif !important;
 }
 .card, .card-body {
     padding: 0 !important;
@@ -206,16 +206,16 @@ html, body {
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background-color: #09090b !important;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) !important;
-    background-size: 24px 24px !important;
+    background-color: transparent !important;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px) !important;
+    background-size: 28px 28px !important;
     border: none !important;
 }
 .vis-tooltip {
     background: #0d1117 !important;
     border: 1px solid #30363d !important;
     color: #e6edf3 !important;
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'Chakra Petch', sans-serif !important;
     font-size: 11px !important;
     padding: 8px 12px !important;
     border-radius: 6px !important;
@@ -228,6 +228,12 @@ function initWhenReady() {
   if (typeof network === 'undefined' || typeof nodes === 'undefined' || typeof edges === 'undefined') {
     setTimeout(initWhenReady, 50);
     return;
+
+    if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() {
+      if (typeof network !== 'undefined') network.redraw();
+    });
+  }
   }
 
   var canonicalNodes = new Map();
@@ -351,7 +357,7 @@ function initWhenReady() {
       lodLevel = 0;
       w = 22;
       h = 22;
-    } else if (zoom < 1.35) {
+    } else if (zoom < 0.75) {
       lodLevel = 1;
       w = 155;
       h = 34;
@@ -417,10 +423,10 @@ function initWhenReady() {
 
           ctx.beginPath();
           ctx.arc(topX + 11, topY + h / 2, 3.5, 0, Math.PI * 2);
-          ctx.fillStyle = '#00FF9D';
+          ctx.fillStyle = '#10b981';
           ctx.fill();
 
-          ctx.font = "600 11px 'JetBrains Mono', monospace";
+          ctx.font = "600 11px 'Chakra Petch', sans-serif";
           ctx.fillStyle = '#f8fafc';
           ctx.textBaseline = 'middle';
           var t = truncateText(ctx, mainText, w - 32);
@@ -457,7 +463,7 @@ function initWhenReady() {
         ctx.stroke();
 
         ctx.textBaseline = 'top';
-        ctx.font = "700 9px 'JetBrains Mono', monospace";
+        ctx.font = "700 9.5px 'Chakra Petch', sans-serif";
         ctx.fillStyle = rawColor;
         ctx.fillText(entityType, topX + 10, topY + 8);
 
@@ -482,9 +488,9 @@ function initWhenReady() {
         ctx.lineWidth = 1.3;
         ctx.stroke();
 
-        ctx.fillStyle = '#00FF9D';
-        ctx.font = "600 7.5px 'JetBrains Mono', monospace";
-        var secText = "SEC 63 VERIFIED";
+        ctx.fillStyle = '#a1a1aa';
+        ctx.font = "600 8px 'Chakra Petch', sans-serif";
+        var secText = "SEC 63(4)";
         var secW = ctx.measureText(secText).width;
         ctx.fillText(secText, btnX - secW - 8, topY + 9);
 
@@ -495,12 +501,12 @@ function initWhenReady() {
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        ctx.font = "700 12px 'JetBrains Mono', monospace";
+        ctx.font = "700 13px 'Chakra Petch', sans-serif";
         ctx.fillStyle = '#ffffff';
         var displayTitle = truncateText(ctx, mainText, w - 20);
         ctx.fillText(displayTitle, topX + 10, topY + 28);
 
-        ctx.font = "600 8.5px 'JetBrains Mono', monospace";
+        ctx.font = "600 9.5px 'Chakra Petch', sans-serif";
         var tacticalRole = explicitRole;
         var roleColor = "#cbd5e1";
         var roleBadge = "ACTIVE LINK";
@@ -508,45 +514,86 @@ function initWhenReady() {
         var badgeBorder = "#3f3f46";
         var badgeColor = "#e4e4e7";
 
+        // Subtle, high-contrast category-aligned badge colors
         if (entityType.indexOf('MASTERMIND') !== -1) {
-          tacticalRole = "CRITICAL APEX"; roleColor = "#ef4444";
-          roleBadge = "TIER-1 KINGPIN"; badgeBg = "rgba(239, 68, 68, 0.15)"; badgeBorder = "#b91c1c"; badgeColor = "#fca5a5";
+          tacticalRole = "CRITICAL APEX"; 
+          roleColor = "#f87171";
+          roleBadge = "TIER-1 KINGPIN"; 
+          badgeBg = "rgba(239, 68, 68, 0.18)"; 
+          badgeBorder = "rgba(239, 68, 68, 0.45)"; 
+          badgeColor = "#fca5a5";
         } else if (entityType.indexOf('ATM') !== -1) {
-          tacticalRole = "CASH-OUT TERMINAL"; roleColor = "#f43f5e";
-          roleBadge = "SHATTER EXIT"; badgeBg = "rgba(244, 63, 94, 0.15)"; badgeBorder = "#be123c"; badgeColor = "#fda4af";
-        } else if (entityType.indexOf('MULE') !== -1) {
-          tacticalRole = "PMLA FAN-OUT"; roleColor = "#c084fc";
-          roleBadge = "MULE ACCOUNT"; badgeBg = "rgba(192, 132, 252, 0.15)"; badgeBorder = "#7e22ce"; badgeColor = "#e9d5ff";
-        } else if (entityType.indexOf('COMPLAINANT') !== -1 || id === 888888) {
-          tacticalRole = "WITNESS / VICTIM"; roleColor = "#34d399";
-          roleBadge = "PROTECTED"; badgeBg = "rgba(52, 211, 153, 0.15)"; badgeBorder = "#059669"; badgeColor = "#a7f3d0";
+          tacticalRole = "CASH-OUT TERMINAL"; 
+          roleColor = "#fb7185";
+          roleBadge = "SHATTER EXIT"; 
+          badgeBg = "rgba(244, 63, 94, 0.18)"; 
+          badgeBorder = "rgba(244, 63, 94, 0.45)"; 
+          badgeColor = "#fda4af";
+        } else if (entityType.indexOf('MULE') !== -1 || entityType.indexOf('ACCOUNT') !== -1) {
+          tacticalRole = "PMLA FAN-OUT"; 
+          roleColor = "#c084fc";
+          roleBadge = "MULE ACCOUNT"; 
+          badgeBg = "rgba(168, 85, 247, 0.18)"; 
+          badgeBorder = "rgba(168, 85, 247, 0.45)"; 
+          badgeColor = "#e9d5ff";
+        } else if (entityType.indexOf('COMPLAINANT') !== -1 || entityType.indexOf('VICTIM') !== -1 || id === 888888) {
+          tacticalRole = "WITNESS / VICTIM"; 
+          roleColor = "#34d399";
+          roleBadge = "PROTECTED"; 
+          badgeBg = "rgba(16, 185, 129, 0.18)"; 
+          badgeBorder = "rgba(16, 185, 129, 0.50)"; 
+          badgeColor = "#6ee7b7";
         } else if (entityType.indexOf('PHONE') !== -1) {
-          tacticalRole = "COVERT TERMINAL"; roleColor = "#38bdf8";
+          tacticalRole = "COVERT TERMINAL"; 
+          roleColor = "#38bdf8";
           roleBadge = deg.total > 2 ? "INTERCEPT HUB" : "BURNER SIM"; 
-          badgeBg = "rgba(56, 189, 248, 0.15)"; badgeBorder = "#0284c7"; badgeColor = "#bae6fd";
+          badgeBg = "rgba(56, 189, 248, 0.18)"; 
+          badgeBorder = "rgba(56, 189, 248, 0.45)"; 
+          badgeColor = "#bae6fd";
         } else if (entityType.indexOf('VEHICLE') !== -1) {
-          tacticalRole = "LOGISTICS RELAY"; roleColor = "#94a3b8";
-          roleBadge = "MOTOR CARRIER"; badgeBg = "rgba(148, 163, 184, 0.15)"; badgeBorder = "#475569"; badgeColor = "#cbd5e1";
-        } else if (entityType.indexOf('FIR') !== -1) {
-          tacticalRole = "STATUTORY CASE"; roleColor = "#38bdf8";
-          roleBadge = "COURT COGNIZED"; badgeBg = "rgba(56, 189, 248, 0.15)"; badgeBorder = "#0284c7"; badgeColor = "#bae6fd";
+          tacticalRole = "LOGISTICS RELAY"; 
+          roleColor = "#94a3b8";
+          roleBadge = "MOTOR CARRIER"; 
+          badgeBg = "rgba(148, 163, 184, 0.18)"; 
+          badgeBorder = "rgba(148, 163, 184, 0.45)"; 
+          badgeColor = "#cbd5e1";
+        } else if (entityType.indexOf('FIR') !== -1 || entityType.indexOf('CRIME') !== -1) {
+          tacticalRole = "STATUTORY CASE"; 
+          roleColor = "#38bdf8";
+          roleBadge = "COURT COGNIZED"; 
+          badgeBg = "rgba(56, 189, 248, 0.18)"; 
+          badgeBorder = "rgba(56, 189, 248, 0.45)"; 
+          badgeColor = "#bae6fd";
         } else {
           if (deg.in > 0 && deg.out > 0) {
-            tacticalRole = "SYNDICATE BROKER"; roleColor = "#f59e0b";
-            roleBadge = "COMMUNICATION HUB"; badgeBg = "rgba(245, 158, 11, 0.15)"; badgeBorder = "#d97706"; badgeColor = "#fde68a";
+            tacticalRole = "SYNDICATE BROKER"; 
+            roleColor = "#fbbf24";
+            roleBadge = "COMMUNICATION HUB"; 
+            badgeBg = "rgba(245, 158, 11, 0.18)"; 
+            badgeBorder = "rgba(245, 158, 11, 0.45)"; 
+            badgeColor = "#fde68a";
           } else if (deg.out >= 2) {
-            tacticalRole = "BAIL SURETY"; roleColor = "#f59e0b";
-            roleBadge = "SURETY BOND"; badgeBg = "rgba(245, 158, 11, 0.15)"; badgeBorder = "#d97706"; badgeColor = "#fde68a";
+            tacticalRole = "BAIL SURETY"; 
+            roleColor = "#fbbf24";
+            roleBadge = "SURETY BOND"; 
+            badgeBg = "rgba(245, 158, 11, 0.18)"; 
+            badgeBorder = "rgba(245, 158, 11, 0.45)"; 
+            badgeColor = "#fde68a";
           } else {
-            tacticalRole = "CO-ACCUSED"; roleColor = "#cbd5e1";
-            roleBadge = "CHARGESHEETED"; badgeBg = "rgba(71, 85, 105, 0.25)"; badgeBorder = "#475569"; badgeColor = "#e2e8f0";
+            // Chargesheet / Suspect / Co-Accused: aligned with orange/amber suspect rule
+            tacticalRole = "CO-ACCUSED"; 
+            roleColor = "#fb923c";
+            roleBadge = "CHARGESHEET"; 
+            badgeBg = "rgba(249, 115, 22, 0.18)"; 
+            badgeBorder = "rgba(249, 115, 22, 0.45)"; 
+            badgeColor = "#fed7aa";
           }
         }
 
         ctx.fillStyle = roleColor;
         ctx.fillText(tacticalRole, topX + 10, topY + 46);
 
-        ctx.font = "700 8px 'JetBrains Mono', monospace";
+        ctx.font = "700 8.5px 'Chakra Petch', sans-serif";
         var badgeTextW = ctx.measureText(roleBadge).width;
         var badgeW = badgeTextW + 10;
         var badgeH = 14;
@@ -568,7 +615,7 @@ function initWhenReady() {
         ctx.strokeStyle = '#1e293b';
         ctx.stroke();
 
-        ctx.font = "600 8.5px 'JetBrains Mono', monospace";
+        ctx.font = "600 8.5px 'Chakra Petch', sans-serif";
         ctx.fillStyle = '#94a3b8';
         var flowText = "FLOW: IN " + deg.in + " | OUT " + deg.out;
         ctx.fillText(flowText, topX + 10, topY + 70);
@@ -1461,7 +1508,7 @@ def render_uploaded_graph_canvas(case_id: str, graph_data: dict, results: dict, 
             color={'background': bg_color, 'border': border_color, 'highlight': {'background': '#3f3f46', 'border': '#ffffff'}},
             borderWidth=1.2,
             size=dynamic_size,
-            font={'face': 'IBM Plex Sans, sans-serif', 'size': 10, 'color': '#f4f4f5'}
+            font={'face': 'Chakra Petch, sans-serif', 'size': 10, 'color': '#f4f4f5'}
         )
 
     edge_aggregates = {}
@@ -1515,7 +1562,7 @@ def render_uploaded_graph_canvas(case_id: str, graph_data: dict, results: dict, 
             title=edge_title, 
             color=edge_color, 
             width=edge_width,
-            font={'color': '#cbd5e1', 'size': 9.5, 'strokeWidth': 2.5, 'strokeColor': '#09090b', 'face': 'IBM Plex Sans, sans-serif'}
+font={'face': 'Chakra Petch, sans-serif', 'size': 10, 'color': '#f4f4f5'}
         )
 
     output_path = os.path.join(_script_dir, "crime_network_visualization.html")
@@ -2127,7 +2174,7 @@ def generate_dynamic_graph(
                 color={'background': color, 'border': border, 'highlight': {'background': '#3f3f46', 'border': '#ffffff'}},
                 borderWidth=1.2,
                 size=size,
-                font={'face': 'IBM Plex Sans, sans-serif', 'size': 10, 'color': '#f4f4f5'}
+                font={'face': 'Chakra Petch, sans-serif', 'size': 10, 'color': '#f4f4f5'}
             )
 
     if fir_nid and show_anchor:
@@ -2161,7 +2208,7 @@ def generate_dynamic_graph(
                 label="Lodged FIR", 
                 color="#059669", 
                 width=1.8,
-                font={'color': '#a7f3d0', 'size': 10, 'strokeWidth': 2, 'strokeColor': '#09090b', 'face': 'IBM Plex Sans, sans-serif'}
+font={'color': '#cbd5e1', 'size': 9.5, 'strokeWidth': 2.5, 'strokeColor': '#09090b', 'face': 'Chakra Petch, sans-serif'}
             )
 
     def style_node(nid, uid, ntype, label, risk, shatter, jurisdiction=""):
@@ -2287,13 +2334,19 @@ def generate_dynamic_graph(
             edge_title = titles[0] if titles else clean_type
 
         net.add_edge(
-            src, dst, 
-            label=edge_lbl, 
-            title=edge_title, 
-            color=edge_color, 
-            width=edge_width,
-            font={'color': '#cbd5e1', 'size': 9.5, 'strokeWidth': 2.5, 'strokeColor': '#09090b', 'face': 'IBM Plex Sans, sans-serif'}
-        )
+    src, dst, 
+    label=edge_lbl, 
+    title=edge_title, 
+    color=edge_color, 
+    width=edge_width,
+    font={
+        'color': '#cbd5e1', 
+        'size': 10, 
+        'strokeWidth': 2.5, 
+        'strokeColor': '#09090b', 
+        'face': 'Chakra Petch, sans-serif'
+    }
+)
 
     output_path = os.path.join(_script_dir, "crime_network_visualization.html")
     net.save_graph(output_path)

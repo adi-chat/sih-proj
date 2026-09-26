@@ -1,11 +1,11 @@
 .split-flap-text {
   display: inline-flex;
   align-items: center;
-  gap: var(--split-flap-gap, 2px);
-  color: var(--split-flap-text-color, #34d399);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: var(--split-flap-font-size, 12px);
-  font-weight: 600;
+  gap: var(--split-flap-gap, 3px);
+  color: var(--split-flap-text-color, #ffffff);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--split-flap-font-size, 16px);
+  font-weight: 700;
   line-height: 1;
   letter-spacing: 0.05em;
   white-space: pre;
@@ -16,25 +16,21 @@
 
 .split-flap-text__tile {
   position: relative;
-  width: 0.78em;
-  height: 1.15em;
+  width: 0.82em;
+  height: 1.22em;
   overflow: hidden;
-  border-radius: var(--split-flap-radius, 3px);
+  border-radius: var(--split-flap-radius, 4px);
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12), transparent 44%),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--split-flap-tile-color, #121215) 85%, white),
-      var(--split-flap-tile-color, #121215)
-    );
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.18), transparent 50%),
+    linear-gradient(180deg, #101014 0%, #000000 100%);
   box-shadow:
-    0 0.035em 0.08em rgba(255, 255, 255, 0.05) inset,
-    0 -0.05em 0.1em rgba(0, 0, 0, 0.5) inset,
-    0 0.12em 0.28em rgba(0, 0, 0, 0.4);
-  perspective: 520px;
+    0 0.04em 0.1em rgba(255, 255, 255, 0.08) inset,
+    0 -0.06em 0.12em rgba(0, 0, 0, 0.8) inset,
+    0 0.15em 0.35em rgba(0, 0, 0, 0.9);
+  perspective: 540px;
   transform-style: preserve-3d;
   isolation: isolate;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .split-flap-text__tile::before {
@@ -48,14 +44,11 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.15) 18%,
-    rgba(0, 0, 0, 0.75) 50%,
-    rgba(255, 255, 255, 0.12) 82%,
+    rgba(255, 255, 255, 0.25) 20%,
+    rgba(0, 0, 0, 0.95) 50%,
+    rgba(255, 255, 255, 0.2) 80%,
     transparent
   );
-  box-shadow:
-    0 -1px 0 rgba(255, 255, 255, 0.06),
-    0 1px 0 rgba(0, 0, 0, 0.6);
   pointer-events: none;
 }
 
@@ -67,8 +60,8 @@
   height: 50%;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 34%),
-    var(--split-flap-tile-color, #121215);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 35%),
+    #050507;
   backface-visibility: hidden;
 }
 
@@ -81,8 +74,8 @@
 .split-flap-text__flap--back {
   bottom: 0;
   background:
-    linear-gradient(0deg, rgba(255, 255, 255, 0.04), transparent 38%),
-    color-mix(in srgb, var(--split-flap-tile-color, #121215) 90%, black);
+    linear-gradient(0deg, rgba(255, 255, 255, 0.05), transparent 40%),
+    #000000;
 }
 
 .split-flap-text__char {
@@ -93,10 +86,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--split-flap-text-color, #34d399);
+  color: var(--split-flap-text-color, #ffffff);
   text-shadow:
-    0 0.025em 0 rgba(255, 255, 255, 0.1),
-    0 0.08em 0.16em rgba(0, 0, 0, 0.6);
+    0 0.03em 0 rgba(255, 255, 255, 0.15),
+    0 0.1em 0.2em rgba(0, 0, 0, 0.9);
 }
 
 .split-flap-text__half--top .split-flap-text__char,
@@ -129,19 +122,18 @@
 @keyframes split-flap-front {
   0% {
     transform: rotateX(0deg);
-    filter: brightness(1.1);
+    filter: brightness(1.15);
   }
   100% {
     transform: rotateX(-90deg);
-    filter: brightness(0.45);
+    filter: brightness(0.4);
   }
 }
 
 @keyframes split-flap-back {
-  0%,
-  45% {
+  0%, 45% {
     transform: rotateX(90deg);
-    filter: brightness(0.5);
+    filter: brightness(0.45);
   }
   100% {
     transform: rotateX(0deg);

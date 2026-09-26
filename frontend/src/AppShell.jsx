@@ -34,6 +34,8 @@ import { useStore } from "./store";
 import PanoptesLogo from "./components/ui/PanoptesLogo";
 import SplitFlapText from "./components/ui/SplitFlapText";
 import TargetCursor from "./components/ui/TargetCursor";
+import AsciiDecryptedText from "./components/ui/AsciiDecryptedText";
+import TiltCard from "./components/ui/TiltCard";
 
 const SCOPE_OPTIONS = [
   { value: "national", label: "NATIONAL GRID" },
@@ -63,7 +65,6 @@ export default function AppShell({ children }) {
     jurisdictionScope,
     setJurisdictionScope,
     evidenceMode,
-    uploadedExhibitHash,
     resetToDatabaseMode,
     hiddenNodes = [],
     restoreNode,
@@ -79,15 +80,11 @@ export default function AppShell({ children }) {
 
   const [searchInput, setSearchInput] = useState(activeCaseId || "");
   const [downloading, setDownloading] = useState(false);
-
-  // Modern Hopfield Attractor State
   const [archetypeData, setArchetypeData] = useState(null);
   const [showHopfieldScore, setShowHopfieldScore] = useState(false);
   const [loadingArchetype, setLoadingArchetype] = useState(false);
-
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -97,7 +94,6 @@ export default function AppShell({ children }) {
     setSearchInput(activeCaseId || "");
   }, [activeCaseId]);
 
-  // Synchronize Hopfield archetype classification for active case
   useEffect(() => {
     if (!activeCaseId || !isAuthenticated) {
       setArchetypeData(null);
@@ -106,7 +102,7 @@ export default function AppShell({ children }) {
     let isMounted = true;
     setLoadingArchetype(true);
     fetch(
-      `http://127.0.0.1:8000/api/ai/archetype/${encodeURIComponent(activeCaseId)}`
+      `http://127.0.0.1:8000/api/ai/archetype/${encodeURIComponent(activeCaseId)}`,
     )
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -127,10 +123,8 @@ export default function AppShell({ children }) {
     };
   }, [activeCaseId, isAuthenticated]);
 
-  // Click-outside listener for tray and scope menu
   useEffect(() => {
     if (!trayOpen && !scopeMenuOpen) return;
-
     const handleClickOutside = (e) => {
       if (
         scopeDropdownRef.current &&
@@ -148,7 +142,6 @@ export default function AppShell({ children }) {
         setTrayOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [trayOpen, scopeMenuOpen, setTrayOpen]);
@@ -159,7 +152,7 @@ export default function AppShell({ children }) {
     if (iframe) {
       iframe.contentWindow?.postMessage(
         { type: "RESTORE_NODE", payload: id },
-        "*"
+        "*",
       );
     }
   };
@@ -177,10 +170,9 @@ export default function AppShell({ children }) {
     if (!isAuthenticated || evidenceMode === "uploaded") return;
     const cleanId = searchInput.trim().toUpperCase();
     if (cleanId) {
-      if (setSelectedNode) {
-        setSelectedNode(null);
-      }
+      if (setSelectedNode) setSelectedNode(null);
       setTrayOpen(false);
+      useStore.setState({ inspectorOpen: false });
       setActiveCase(cleanId);
     }
   };
@@ -199,10 +191,9 @@ export default function AppShell({ children }) {
     try {
       const cleanId = encodeURIComponent(String(nodeId).trim());
       const res = await fetch(
-        `http://127.0.0.1:8000/api/dossier/target/${cleanId}`
+        `http://127.0.0.1:8000/api/dossier/target/${cleanId}`,
       );
       if (!res.ok) throw new Error("Target rap sheet failed on server");
-
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -230,20 +221,15 @@ export default function AppShell({ children }) {
       resetToDatabaseMode();
       setSearchInput("");
       setJurisdictionScope("national");
-
       const iframe = document.querySelector("iframe");
-      if (iframe) {
-        iframe.src = "about:blank";
-      }
+      if (iframe) iframe.src = "about:blank";
     }
   };
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 11) {
-      alert(
-        "A maximum of 11 exhibit files (file1 to file11) can be uploaded at once."
-      );
+      alert("Maximum 11 exhibit files can be uploaded at once.");
       setSelectedFiles(files.slice(0, 11));
     } else {
       setSelectedFiles(files);
@@ -256,13 +242,11 @@ export default function AppShell({ children }) {
       alert("Select at least 1 evidence file (.csv or .txt)");
       return;
     }
-
     setUploading(true);
     const formData = new FormData();
     selectedFiles.forEach((file, index) => {
       formData.append(`file${index + 1}`, file);
     });
-
     try {
       const targetId = "CASE-FIELD-INGEST";
       const res = await fetch(
@@ -270,18 +254,15 @@ export default function AppShell({ children }) {
         {
           method: "POST",
           body: formData,
-        }
+        },
       );
-
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `Upload failed with HTTP ${res.status}`
+          errorData.detail || `Upload failed with HTTP ${res.status}`,
         );
       }
-
       const data = await res.json();
-
       useStore.setState({
         activeCaseId: targetId,
         evidenceMode: "uploaded",
@@ -290,11 +271,10 @@ export default function AppShell({ children }) {
         uploadedEntityMap: data.entity_map || {},
         selectedNode: null,
         trayOpen: false,
+        inspectorOpen: false,
       });
-
       setUploadModalOpen(false);
       setSelectedFiles([]);
-
       const iframe = document.querySelector("iframe");
       if (iframe) {
         iframe.src = `http://127.0.0.1:8000/static/crime_network_visualization.html?t=${Date.now()}`;
@@ -305,6 +285,283 @@ export default function AppShell({ children }) {
     } finally {
       setUploading(false);
     }
+  };
+
+  const getTargetNameColorClass = () => {
+    if (!selectedNode) return "text-white";
+    const type = String(selectedNode.type || "").toUpperCase();
+    const status = String(selectedNode.status || "").toUpperCase();
+    const idStr = String(selectedNode.id || "");
+    const risk = Number(selectedNode.riskScore) || 0;
+
+    if (
+      type.includes("COMPLAINANT") ||
+      type.includes("VICTIM") ||
+      status.includes("VICTIM") ||
+      status.includes("PROTECTED") ||
+      idStr.includes("888888")
+    ) {
+      return "text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.45)]";
+    }
+
+    if (
+      status.includes("MASTERMIND") ||
+      status.includes("APEX") ||
+      type.includes("MASTERMIND") ||
+      (type === "PERSON" && risk >= 70)
+    ) {
+      return "text-rose-500 drop-shadow-[0_0_12px_rgba(244,63,94,0.45)]";
+    }
+
+    if (type.includes("ATM") || status.includes("SHATTER")) {
+      return "text-rose-400 drop-shadow-[0_0_12px_rgba(251,113,133,0.45)]";
+    }
+
+    if (
+      type === "PERSON" ||
+      type.includes("SUSPECT") ||
+      status.includes("SUSPECT") ||
+      status.includes("ACCUSED") ||
+      status.includes("SURETY") ||
+      status.includes("BROKER")
+    ) {
+      return "text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.45)]";
+    }
+
+    if (
+      type.includes("ACCOUNT") ||
+      type.includes("UPI") ||
+      type.includes("MULE")
+    ) {
+      return "text-purple-400 drop-shadow-[0_0_12px_rgba(192,132,252,0.45)]";
+    }
+
+    if (
+      type.includes("PHONE") ||
+      type.includes("MSISDN") ||
+      type.includes("CDR")
+    ) {
+      return "text-sky-400 drop-shadow-[0_0_12px_rgba(56,189,248,0.45)]";
+    }
+
+    if (
+      type.includes("CELL") ||
+      type.includes("TOWER") ||
+      type.includes("CGI")
+    ) {
+      return "text-teal-400 drop-shadow-[0_0_12px_rgba(45,212,191,0.45)]";
+    }
+
+    if (type.includes("VEHICLE")) {
+      return "text-slate-300 drop-shadow-[0_0_10px_rgba(203,213,225,0.35)]";
+    }
+
+    return "text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.4)]";
+  };
+
+  const getNodeDrawerStyles = (node) => {
+    const type = String(node.type || "").toUpperCase();
+    const status = String(node.status || "").toUpperCase();
+    const idStr = String(node.id || "");
+    const risk = Number(node.riskScore) || 0;
+
+    if (
+      type.includes("COMPLAINANT") ||
+      type.includes("VICTIM") ||
+      status.includes("VICTIM") ||
+      status.includes("PROTECTED") ||
+      idStr.includes("888888")
+    ) {
+      return {
+        card: "border-emerald-500/30 bg-emerald-950/20 hover:border-emerald-500/55",
+        dot: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.85)]",
+        name: "text-emerald-300",
+        typeText: "text-emerald-400 font-bold",
+        badge: "text-emerald-300 bg-emerald-500/15 border-emerald-500/30",
+      };
+    }
+
+    if (
+      status.includes("MASTERMIND") ||
+      status.includes("APEX") ||
+      type.includes("MASTERMIND") ||
+      (type === "PERSON" && risk >= 70)
+    ) {
+      return {
+        card: "border-rose-500/35 bg-rose-950/25 hover:border-rose-500/60",
+        dot: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.9)]",
+        name: "text-rose-300",
+        typeText: "text-rose-400 font-bold",
+        badge: "text-rose-300 bg-rose-500/20 border-rose-500/40",
+      };
+    }
+
+    if (type.includes("ATM") || status.includes("SHATTER")) {
+      return {
+        card: "border-rose-400/30 bg-rose-950/20 hover:border-rose-400/50",
+        dot: "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.85)]",
+        name: "text-rose-300",
+        typeText: "text-rose-400 font-bold",
+        badge: "text-rose-300 bg-rose-400/15 border-rose-400/30",
+      };
+    }
+
+    if (
+      type === "PERSON" ||
+      type.includes("SUSPECT") ||
+      status.includes("SUSPECT") ||
+      status.includes("ACCUSED") ||
+      status.includes("SURETY") ||
+      status.includes("BROKER")
+    ) {
+      return {
+        card: "border-orange-500/30 bg-orange-950/20 hover:border-orange-500/55",
+        dot: "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.85)]",
+        name: "text-orange-300",
+        typeText: "text-orange-400 font-bold",
+        badge: "text-orange-300 bg-orange-500/15 border-orange-500/30",
+      };
+    }
+
+    if (
+      type.includes("ACCOUNT") ||
+      type.includes("UPI") ||
+      type.includes("MULE")
+    ) {
+      return {
+        card: "border-purple-500/30 bg-purple-950/20 hover:border-purple-500/55",
+        dot: "bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.85)]",
+        name: "text-purple-300",
+        typeText: "text-purple-400 font-bold",
+        badge: "text-purple-300 bg-purple-500/15 border-purple-500/30",
+      };
+    }
+
+    if (
+      type.includes("PHONE") ||
+      type.includes("MSISDN") ||
+      type.includes("CDR")
+    ) {
+      return {
+        card: "border-sky-500/30 bg-sky-950/20 hover:border-sky-500/55",
+        dot: "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.85)]",
+        name: "text-sky-300",
+        typeText: "text-sky-400 font-bold",
+        badge: "text-sky-300 bg-sky-500/15 border-sky-500/30",
+      };
+    }
+
+    if (
+      type.includes("CELL") ||
+      type.includes("TOWER") ||
+      type.includes("CGI")
+    ) {
+      return {
+        card: "border-teal-500/30 bg-teal-950/20 hover:border-teal-500/55",
+        dot: "bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.85)]",
+        name: "text-teal-300",
+        typeText: "text-teal-400 font-bold",
+        badge: "text-teal-300 bg-teal-500/15 border-teal-500/30",
+      };
+    }
+
+    if (type.includes("VEHICLE")) {
+      return {
+        card: "border-slate-500/30 bg-slate-900/30 hover:border-slate-500/50",
+        dot: "bg-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.7)]",
+        name: "text-slate-200",
+        typeText: "text-slate-300 font-bold",
+        badge: "text-slate-300 bg-slate-500/15 border-slate-500/30",
+      };
+    }
+
+    if (
+      type.includes("CRIME") ||
+      type.includes("INCIDENT") ||
+      type.includes("FIR")
+    ) {
+      return {
+        card: "border-amber-500/30 bg-amber-950/20 hover:border-amber-500/55",
+        dot: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.85)]",
+        name: "text-amber-300",
+        typeText: "text-amber-400 font-bold",
+        badge: "text-amber-300 bg-amber-500/15 border-amber-500/30",
+      };
+    }
+
+    return {
+      card: "border-white/10 bg-black/60 hover:border-white/25",
+      dot: "bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]",
+      name: "text-white",
+      typeText: "text-zinc-400 font-bold",
+      badge: "text-zinc-200 bg-white/10 border-white/20",
+    };
+  };
+
+  const getRiskBreatheClass = () => {
+    if (!selectedNode) return "breathe-amber-t1";
+    const score = Number(selectedNode.riskScore) || 0;
+    if (score >= 70) return "breathe-red-t1";
+    if (score >= 30) return "breathe-amber-t1";
+    return "breathe-green-t1";
+  };
+
+  const getEntityTypeBreatheClass = () => {
+    if (!selectedNode) return "breathe-cyan-t2";
+    const type = String(selectedNode.type || "").toUpperCase();
+    if (
+      type.includes("PHONE") ||
+      type.includes("MSISDN") ||
+      type.includes("CDR")
+    )
+      return "breathe-cyan-t2";
+    if (
+      type.includes("ACCOUNT") ||
+      type.includes("UPI") ||
+      type.includes("MULE")
+    )
+      return "breathe-violet-t2";
+    if (type.includes("COMPLAINANT") || type.includes("VICTIM"))
+      return "breathe-green-t2";
+    if (
+      type.includes("ATM") ||
+      type.includes("SHATTER") ||
+      type.includes("MASTERMIND")
+    )
+      return "breathe-red-t2";
+    if (type.includes("VEHICLE")) return "breathe-slate-t2";
+    return "breathe-amber-t2";
+  };
+
+  const getOperationalStatusBreatheClass = () => {
+    if (!selectedNode) return "breathe-amber-t3";
+    const status = String(selectedNode.status || "").toUpperCase();
+    if (
+      status.includes("VICTIM") ||
+      status.includes("PROTECTED") ||
+      status.includes("COMPLAINANT")
+    )
+      return "breathe-green-t3";
+    if (
+      status.includes("CRITICAL") ||
+      status.includes("SHATTER") ||
+      status.includes("MASTERMIND")
+    )
+      return "breathe-red-t3";
+    if (
+      status.includes("KEY COORDINATION") ||
+      status.includes("BURNER") ||
+      status.includes("PHONE") ||
+      status.includes("CDR")
+    )
+      return "breathe-cyan-t3";
+    if (
+      status.includes("MULE") ||
+      status.includes("PMLA") ||
+      status.includes("FAN-OUT")
+    )
+      return "breathe-violet-t3";
+    return "breathe-amber-t3";
   };
 
   const navItems = [
@@ -320,29 +577,30 @@ export default function AppShell({ children }) {
   const hiddenCount = (hiddenNodes || []).length;
 
   return (
-    <div className="h-screen w-screen bg-zinc-950 text-zinc-300 font-sans flex flex-col overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="h-screen w-screen bg-black text-white flex flex-col overflow-hidden selection:bg-white selection:text-black font-display">
       <TargetCursor
         targetSelector=".cursor-target"
         spinDuration={2}
-        hoverDuration={0.18}
+        hoverDuration={0.16}
         hideDefaultCursor={false}
         parallaxOn={true}
-        cursorColor="#10b981"
-        cursorColorOnTarget="#34d399"
+        cursorColor="#ffffff"
+        cursorColorOnTarget="#e4e4e7"
       />
 
-      <header className="h-14 border-b border-zinc-800 bg-zinc-900/60 flex items-center px-4 justify-between shrink-0 relative z-40">
+      {/* Header Deck */}
+      <header className="h-14 border-b border-white/10 bg-black/60 backdrop-blur-2xl flex items-center px-4 justify-between shrink-0 relative z-40 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
         <div className="flex items-center shrink-0 z-10">
-          <PanoptesLogo className="w-6 h-6 mr-2.5 text-emerald-500 shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]" />
+          <PanoptesLogo className="w-6 h-6 mr-3 text-white shrink-0 drop-shadow-[0_0_12px_rgba(255,255,255,0.6)]" />
           <SplitFlapText
             words={["PANOPTES"]}
             alwaysFlip={true}
-            cycleDelay={4000}
+            cycleDelay={5000}
             flipDuration={0.07}
             stagger={0.025}
             flipsPerChar={6}
-            tileColor="#141417"
-            textColor="#34d399"
+            tileColor="#000000"
+            textColor="#ffffff"
             tileRadius={4}
             gap={3}
             fontSize={18}
@@ -350,10 +608,10 @@ export default function AppShell({ children }) {
           />
         </div>
 
-        {/* Center Navigation & Search */}
+        {/* Center Search & Grid Scope */}
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center space-x-3 w-full max-w-2xl justify-center z-10">
-          <form onSubmit={handleSearch} className="relative w-72">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+          <form onSubmit={handleSearch} className="relative w-80">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
             <input
               type="text"
               value={
@@ -370,16 +628,11 @@ export default function AppShell({ children }) {
                     ? "Exit exhibit mode to query cases..."
                     : "Query Case ID (e.g. CASE-BR-PAT-2023-00207)..."
               }
-              title={
-                evidenceMode === "uploaded"
-                  ? "Search locked during custom exhibit analysis. Click EXIT EXHIBIT to return to workspace."
-                  : "Query Case ID"
-              }
-              className="cursor-target w-full bg-zinc-950 border border-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed text-xs rounded px-9 py-1.5 focus:outline-none focus:border-emerald-500 text-zinc-200 transition-opacity font-mono"
+              className="cursor-target w-full bg-black/60 border border-white/10 hover:border-white/20 focus:border-white/50 disabled:opacity-40 disabled:cursor-not-allowed text-xs rounded-md pl-9 pr-3 py-2 text-white placeholder:text-zinc-500 transition-all font-display font-medium tracking-wider backdrop-blur-md outline-none"
             />
           </form>
 
-          {/* Scope Dropdown */}
+          {/* Regional Scope Menu */}
           <div className="relative shrink-0" ref={scopeDropdownRef}>
             <button
               type="button"
@@ -389,20 +642,19 @@ export default function AppShell({ children }) {
                 evidenceMode === "uploaded" ||
                 activeModule !== "network"
               }
-              title="Select Regional Grid Scope"
-              className="cursor-target flex items-center bg-zinc-950 border border-zinc-800 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-xs text-zinc-200 rounded pl-8 pr-7 py-1.5 uppercase tracking-wider font-semibold transition-all select-none font-mono"
+              className="cursor-target flex items-center bg-black/60 border border-white/10 hover:border-white/25 disabled:opacity-40 disabled:cursor-not-allowed text-xs text-white rounded-md pl-8 pr-7 py-2 font-display font-bold tracking-[0.14em] uppercase transition-all select-none backdrop-blur-md shadow-lg"
             >
-              <Globe className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-400 pointer-events-none" />
+              <Globe className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" />
               <span>{currentScopeObj.label}</span>
               <ChevronDown
-                className={`w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 transition-transform duration-200 ${
-                  scopeMenuOpen ? "rotate-180 text-emerald-400" : ""
+                className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 transition-transform duration-200 ${
+                  scopeMenuOpen ? "rotate-180 text-white" : ""
                 }`}
               />
             </button>
 
             {scopeMenuOpen && (
-              <div className="absolute top-full left-0 mt-1.5 w-44 bg-zinc-950/95 border border-zinc-800/90 rounded-lg p-1.5 shadow-2xl backdrop-blur-md z-50 flex flex-col space-y-1 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-2 w-52 bg-black/90 border border-white/15 rounded-lg p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-50 flex flex-col space-y-1 font-display">
                 {SCOPE_OPTIONS.map((opt) => {
                   const isSelected = jurisdictionScope === opt.value;
                   return (
@@ -413,15 +665,15 @@ export default function AppShell({ children }) {
                         setJurisdictionScope(opt.value);
                         setScopeMenuOpen(false);
                       }}
-                      className={`cursor-target w-full text-left px-3 py-1.5 rounded text-[11px] font-mono font-semibold tracking-wider transition-colors flex items-center justify-between ${
+                      className={`cursor-target w-full text-left px-3 py-2 rounded text-xs font-bold tracking-[0.12em] uppercase transition-colors flex items-center justify-between ${
                         isSelected
-                          ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
-                          : "text-zinc-400 hover:text-emerald-300 hover:bg-transparent"
+                          ? "text-black bg-white shadow-md"
+                          : "text-zinc-300 hover:text-white hover:bg-white/10"
                       }`}
                     >
                       <span>{opt.label}</span>
                       {isSelected && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-black" />
                       )}
                     </button>
                   );
@@ -430,15 +682,15 @@ export default function AppShell({ children }) {
             )}
           </div>
 
-          {/* Upload & Exit Buttons */}
+          {/* Evidence Buttons */}
           <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={() => setUploadModalOpen(true)}
               disabled={!isAuthenticated}
-              className={`cursor-target flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded border transition-all font-mono disabled:opacity-30 ${
+              className={`cursor-target flex items-center space-x-1.5 px-3.5 py-2 text-xs font-display font-bold tracking-[0.14em] uppercase rounded-md border transition-all disabled:opacity-30 ${
                 evidenceMode === "uploaded"
-                  ? "bg-amber-500/10 text-amber-400 border-amber-500/40 hover:bg-amber-500/20"
-                  : "bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-emerald-500 hover:text-emerald-400"
+                  ? "bg-white text-black border-white shadow-[0_0_16px_rgba(255,255,255,0.35)]"
+                  : "bg-black/60 text-white border-white/10 hover:border-white/30 hover:bg-white/10 backdrop-blur-md"
               }`}
             >
               <Upload className="w-3.5 h-3.5" />
@@ -453,41 +705,40 @@ export default function AppShell({ children }) {
               <button
                 type="button"
                 onClick={handleExitExhibitMode}
-                title="Exit custom exhibit stream and return to empty search workspace"
-                className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 border border-rose-800/60 hover:border-rose-600 rounded text-xs font-semibold font-mono transition-all shadow-sm group"
+                className="flex items-center space-x-1.5 px-3 py-2 bg-black/60 hover:bg-white/10 text-white border border-white/15 rounded-md text-xs font-display font-bold tracking-[0.12em] uppercase transition-all backdrop-blur-md"
               >
-                <X className="w-3.5 h-3.5 text-rose-400 group-hover:rotate-90 transition-transform duration-200" />
+                <X className="w-3.5 h-3.5" />
                 <span>EXIT EXHIBIT</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Right Officer Badge & Disconnect */}
-        <div className="flex items-center space-x-3 text-xs shrink-0 z-10">
+        {/* Right Officer Status & Session Control */}
+        <div className="flex items-center space-x-3 shrink-0 z-10 font-display">
           {isAuthenticated ? (
             <div className="flex items-center space-x-2">
-              <div className="flex items-center px-3 py-1 bg-zinc-900/90 rounded border border-zinc-800 font-mono shadow-sm">
-                <ShieldCheck className="w-3.5 h-3.5 mr-2 text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]" />
-                <span className="text-[10px] text-zinc-500 mr-1.5 tracking-wider font-semibold">
-                  OFFICER:
+              <div className="flex items-center px-3 py-1.5 bg-black/60 rounded-md border border-white/10 shadow-sm backdrop-blur-md">
+                <ShieldCheck className="w-4 h-4 mr-2 text-white" />
+                <span className="text-xs text-zinc-400 mr-1.5 font-bold uppercase tracking-wider font-display">
+                  BADGE:
                 </span>
-                <span className="font-semibold text-emerald-400 tracking-wide">
+                <span className="font-bold text-white tracking-widest text-xs font-display">
                   {operatorBadge}
                 </span>
               </div>
               <button
                 onClick={logout}
                 title="Disconnect terminal session"
-                className="p-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-red-500/40 text-zinc-400 hover:text-red-400 rounded transition-colors"
+                className="p-2 bg-black/60 hover:bg-white/10 border border-white/10 hover:border-white/30 text-zinc-300 hover:text-white rounded-md transition-colors backdrop-blur-md"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center px-3 py-1 bg-zinc-900/60 rounded border border-zinc-800 text-zinc-500 font-mono">
+            <div className="flex items-center px-3 py-1.5 bg-black/60 rounded-md border border-white/10 text-zinc-400 font-display backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-zinc-600 mr-2" />
-              <span className="text-[10px] uppercase tracking-wider font-semibold">
+              <span className="text-xs uppercase tracking-[0.14em] font-bold font-display">
                 SESSION LOCKED
               </span>
             </div>
@@ -496,26 +747,33 @@ export default function AppShell({ children }) {
       </header>
 
       {/* Main Workspace Layout */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Navigation Sidebar */}
-        <aside className="w-16 flex flex-col items-center justify-between py-4 border-r border-zinc-800 bg-zinc-900/20 shrink-0 relative z-30">
-          <div className="flex flex-col items-center space-y-3 w-full">
+      <div className="flex-1 flex overflow-hidden relative bg-black">
+        {/* Left Navigation Bar */}
+        <aside className="w-16 flex flex-col items-center justify-between py-4 border-r border-white/10 bg-black/50 backdrop-blur-2xl shrink-0 relative z-30 shadow-[4px_0_24px_rgba(0,0,0,0.8)]">
+          <div className="flex flex-col items-center space-y-3.5 w-full">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeModule === item.id;
               return (
                 <button
                   key={item.id}
-                  onClick={() => isAuthenticated && setModule(item.id)}
+                  onClick={() => {
+                    if (isAuthenticated) {
+                      if (activeModule === "network" && item.id !== "network") {
+                        useStore.setState({ inspectorOpen: false });
+                      }
+                      setModule(item.id);
+                    }
+                  }}
                   disabled={!isAuthenticated}
                   title={item.label}
                   className={`cursor-target p-3 rounded-xl transition-all duration-150 disabled:opacity-30 ${
                     isActive && isAuthenticated
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
-                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                      ? "bg-white text-black border border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                      : "text-zinc-400 hover:text-white hover:bg-white/10"
                   }`}
                 >
-                  <Icon className="w-5 h-5 stroke-[1.5]" />
+                  <Icon className="w-5 h-5 stroke-[2]" />
                 </button>
               );
             })}
@@ -523,25 +781,25 @@ export default function AppShell({ children }) {
 
           {/* Node Inventory Trigger Button */}
           <div className="flex flex-col items-center w-full relative">
-            <div className="w-8 h-[1px] bg-zinc-800 my-2" />
+            <div className="w-8 h-[1px] bg-white/10 my-2" />
             <button
               ref={trayBtnRef}
               onClick={() => setTrayOpen(!trayOpen)}
               title={`Node Inventory (${hiddenCount} Staged)`}
               className={`cursor-target relative p-3 rounded-xl transition-all duration-150 ${
                 trayOpen
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.25)]"
+                  ? "bg-white text-black border border-white"
                   : hiddenCount > 0
-                    ? "bg-zinc-900 text-purple-400 border border-purple-500/30 hover:bg-zinc-800"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                    ? "bg-black/60 text-white border border-white/20 hover:bg-white/10"
+                    : "text-zinc-400 hover:text-white hover:bg-white/10"
               }`}
             >
-              <Boxes className="w-5 h-5 stroke-[1.5]" />
+              <Boxes className="w-5 h-5 stroke-[2]" />
               <span
-                className={`absolute -top-1 -right-1 px-1 py-0.5 rounded-full text-[8.5px] font-bold font-mono shadow-md border border-zinc-900 leading-none ${
+                className={`absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold font-display shadow-md border border-black leading-none ${
                   hiddenCount > 0
-                    ? "bg-purple-600 text-white"
-                    : "bg-zinc-800 text-zinc-500"
+                    ? "bg-white text-black"
+                    : "bg-black/80 text-zinc-500 border border-white/10"
                 }`}
               >
                 {String(hiddenCount).padStart(2, "0")}
@@ -550,87 +808,122 @@ export default function AppShell({ children }) {
           </div>
         </aside>
 
-        <main className="flex-1 relative bg-zinc-950 overflow-hidden flex flex-col z-10">
+        {/* Dynamic Viewport */}
+        <main className="flex-1 relative bg-black overflow-hidden flex flex-col z-10">
           {children}
         </main>
 
+        {/* Right Forensic Inspector Panel */}
         <aside
-          className={`border-l border-zinc-800 bg-zinc-900/40 flex flex-col transition-all duration-300 ease-in-out shrink-0 z-20 ${
-            inspectorOpen ? "w-84 opacity-100" : "w-0 opacity-0 border-none"
+          className={`border-l border-white/10 bg-black/70 backdrop-blur-2xl flex flex-col transition-all duration-300 ease-in-out shrink-0 z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.85)] ${
+            inspectorOpen ? "w-92 opacity-100" : "w-0 opacity-0 border-none"
           }`}
         >
           {inspectorOpen && (
-            <div className="flex flex-col h-full w-84">
-              {/* Target Node Intel Header Strip + Hopfield Button */}
-              <div className="h-14 border-b border-zinc-800 flex items-center justify-between px-3.5 bg-zinc-900/50 shrink-0">
-                <span className="text-xs font-semibold text-emerald-400 tracking-wider flex items-center shrink-0">
+            <div className="flex flex-col h-full w-92 font-display">
+              {/* Header Strip */}
+              <div className="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-black/40 shrink-0">
+                <span className="text-xs font-display font-bold tracking-[0.14em] text-white uppercase flex items-center shrink-0">
                   {isAuthenticated ? (
                     <>
-                      <UserCheck className="w-4 h-4 mr-1.5 text-emerald-400 shrink-0" />
-                      <span>TARGET NODE INTEL</span>
+                      <UserCheck className="w-4 h-4 mr-2 text-zinc-300 shrink-0" />
+                      <AsciiDecryptedText text="TARGET NODE INTEL" />
                     </>
                   ) : (
                     <>
-                      <KeyRound className="w-4 h-4 mr-1.5 text-emerald-400 shrink-0" />
+                      <KeyRound className="w-4 h-4 mr-2 text-zinc-300 shrink-0" />
                       <span>TERMINAL LOGIN</span>
                     </>
                   )}
                 </span>
 
-                {/* Pattern Match Toggle Button inside Right Panel Header */}
-                {isAuthenticated && (
-                  <button
-                    type="button"
-                    onClick={() => setShowHopfieldScore((prev) => !prev)}
-                    disabled={!activeCaseId || evidenceMode === "uploaded"}
-                    title={
-                      !activeCaseId
-                        ? "Query a case to analyze criminal pattern"
-                        : "Toggle AI Syndicate Pattern Match Telemetry"
-                    }
-                    className={`cursor-target flex items-center space-x-1.5 px-2 py-1 text-[11px] font-mono font-semibold rounded border transition-all select-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed ${
-                      showHopfieldScore
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
-                        : "bg-zinc-950 text-zinc-300 hover:text-emerald-300 hover:border-emerald-500/60 animate-hud-breathe"
-                    }`}
-                  >
-                    <BrainCircuit
-                      className={`w-3.5 h-3.5 transition-colors ${
-                        showHopfieldScore
-                          ? "text-emerald-400 animate-pulse"
-                          : "text-emerald-500/80 group-hover:text-emerald-400"
-                      }`}
-                    />
-                    <span className="tracking-wider">AI PATTERN</span>
-                    {archetypeData?.confidence_score && (
-                      <span
-                        className={`text-[9.5px] px-1 py-0.2 rounded font-bold border transition-colors ${
+                {/* AI PATTERN BUTTON: RED AURA GLOW */}
+                {isAuthenticated && (() => {
+                  const conf = Number(archetypeData?.confidence_score) || 0;
+                  const isHighRisk = conf >= 70;
+
+                  const glowStyle = showHopfieldScore
+                    ? {
+                        boxShadow:
+                          "0 0 20px rgba(244, 63, 94, 0.75), inset 0 0 10px rgba(244, 63, 94, 0.35)",
+                      }
+                    : isHighRisk
+                    ? {
+                        boxShadow:
+                          "0 0 16px rgba(244, 63, 94, 0.6), inset 0 0 6px rgba(244, 63, 94, 0.25)",
+                      }
+                    : undefined;
+
+                  const buttonClasses = showHopfieldScore
+                    ? "bg-rose-600 text-white border-rose-400 font-bold"
+                    : isHighRisk
+                    ? "bg-rose-950/40 text-rose-300 border-rose-500 animate-pulse"
+                    : "bg-black/60 text-zinc-300 hover:text-white hover:border-white/30 animate-hud-breathe";
+
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setShowHopfieldScore((prev) => !prev)}
+                      disabled={!activeCaseId || evidenceMode === "uploaded"}
+                      style={glowStyle}
+                      className={`cursor-target flex items-center space-x-1.5 px-2.5 py-1 text-xs font-display font-bold tracking-[0.12em] uppercase rounded-md border transition-all select-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed ${buttonClasses}`}
+                    >
+                      <BrainCircuit
+                        className={`w-3.5 h-3.5 ${
                           showHopfieldScore
-                            ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/40"
-                            : "bg-emerald-950/40 text-emerald-400 border-emerald-800/40"
+                            ? "text-white"
+                            : isHighRisk
+                            ? "text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.9)]"
+                            : "text-zinc-300"
                         }`}
+                      />
+                      <span
+                        className={
+                          showHopfieldScore
+                            ? "text-white"
+                            : isHighRisk
+                            ? "text-rose-200"
+                            : ""
+                        }
                       >
-                        {archetypeData.confidence_score}%
+                        AI PATTERN
                       </span>
-                    )}
-                  </button>
-                )}
+                      {archetypeData?.confidence_score && (
+                        <span
+                          className={`text-xs font-display font-bold px-1.5 py-0.5 rounded border ${
+                            showHopfieldScore
+                              ? "bg-black/30 border-white/30 text-white"
+                              : isHighRisk
+                              ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+                              : "bg-white/10 border-white/20 breathe-amber-t1"
+                          }`}
+                        >
+                          {archetypeData.confidence_score}%
+                        </span>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
 
+              {/* Inspector Content */}
               <div className="p-4 flex-1 overflow-y-auto space-y-4">
                 {!isAuthenticated ? (
-                  <form onSubmit={handleLoginSubmit} className="space-y-4 pt-1">
-                    <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded text-xs text-zinc-400 leading-relaxed">
-                      <span className="text-emerald-400 font-bold block mb-0.5">
-                        AIRGAP ACCESS CONTROL
+                  <form
+                    onSubmit={handleLoginSubmit}
+                    className="space-y-4 pt-1 font-display"
+                  >
+                    <div className="p-3 bg-black/60 border border-white/10 rounded-md text-xs text-zinc-300 leading-relaxed font-sans backdrop-blur-md">
+                      <span className="text-white font-display font-bold tracking-wider block mb-1 uppercase">
+                         AIRGAP ACCESS CONTROL 
                       </span>
                       Authenticate with verified officer credentials to
                       initialize session.
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] text-zinc-400 font-medium flex items-center">
-                        <User className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />{" "}
+                      <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider flex items-center">
+                        <User className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
                         Username
                       </label>
                       <input
@@ -639,13 +932,13 @@ export default function AppShell({ children }) {
                         onChange={(e) => setLoginUsername(e.target.value)}
                         placeholder="turbo"
                         autoComplete="off"
-                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded px-3 py-2 text-xs text-zinc-100 outline-none transition-colors"
+                        className="w-full bg-black/80 border border-white/10 focus:border-white/40 rounded-md px-3 py-2 text-sm text-white outline-none transition-colors font-display"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] text-zinc-400 font-medium flex items-center">
-                        <KeyRound className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />{" "}
+                      <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider flex items-center">
+                        <KeyRound className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
                         Password
                       </label>
                       <input
@@ -654,150 +947,143 @@ export default function AppShell({ children }) {
                         onChange={(e) => setLoginPassword(e.target.value)}
                         placeholder="torpedo"
                         autoComplete="off"
-                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded px-3 py-2 text-xs text-zinc-100 outline-none transition-colors"
+                        className="w-full bg-black/80 border border-white/10 focus:border-white/40 rounded-md px-3 py-2 text-sm text-white outline-none transition-colors font-display"
                       />
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold py-2.5 px-3 rounded text-xs transition-colors flex items-center justify-center space-x-2 shadow-lg shadow-emerald-950/50"
+                      className="w-full mt-2 bg-white hover:bg-zinc-200 text-black font-display font-bold tracking-[0.14em] uppercase py-2.5 px-3 rounded-md text-sm transition-all flex items-center justify-center space-x-2 shadow-lg"
                     >
                       <LogIn className="w-4 h-4" />
                       <span>START INVESTIGATION</span>
                     </button>
-
-                    <div className="pt-2 text-[10px] text-zinc-600 text-center border-t border-zinc-800 font-mono">
-                      CCTNS PAN-INDIA SECURE MESH
-                    </div>
                   </form>
                 ) : (
                   <>
                     {selectedNode ? (
-                      <div className="space-y-3 animate-in fade-in duration-200">
-                        {/* 1. CANONICAL TARGET HERO CARD */}
-                        <div className="hud-field hud-field-accent p-3">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[10px] text-zinc-500 font-mono font-bold tracking-wider uppercase">
-                              CANONICAL TARGET
-                            </span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-                              IDENTIFIED
-                            </span>
+                      <div className="space-y-3.5 animate-in fade-in duration-200">
+                        {/* Canonical Target Hero */}
+                        <TiltCard maxTilt={6}>
+                          <div className="hud-field hud-field-accent p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-display font-bold tracking-[0.16em] uppercase text-zinc-400">
+                                CANONICAL TARGET
+                              </span>
+                              <span className="text-xs font-display font-bold px-2 py-0.5 rounded bg-white/10 border border-white/20 text-white">
+                                [IDENTIFIED]
+                              </span>
+                            </div>
+                            <div
+                              className={`font-bold text-lg tracking-tight break-all font-display transition-colors ${getTargetNameColorClass()}`}
+                            >
+                              <AsciiDecryptedText
+                                text={selectedNode.name || selectedNode.id}
+                              />
+                            </div>
                           </div>
-                          <div className="font-semibold text-zinc-100 text-sm tracking-tight break-all font-mono">
-                            {selectedNode.name || selectedNode.id}
-                          </div>
-                        </div>
+                        </TiltCard>
 
-                        {/* 2. DUAL METRIC ROW (CENTRALITY + ENTITY TYPE) */}
-                        <div className="grid grid-cols-2 gap-2">
-                          {/* Centrality Threat Score */}
-                          <div className="hud-field p-2.5 flex flex-col justify-between">
-                            <span className="text-[10px] text-zinc-500 font-mono font-bold tracking-wider">
+                        {/* Metric Row */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="hud-field p-3.5 flex flex-col justify-between">
+                            <span className="text-xs font-display font-bold tracking-[0.14em] uppercase text-zinc-400">
                               CENTRALITY RISK
                             </span>
-                            <div className="mt-1 flex items-baseline space-x-1">
+                            <div className="mt-2 flex items-baseline space-x-1 font-display">
                               <span
-                                className={`text-xl font-bold font-mono tracking-tight ${
-                                  Number(selectedNode.riskScore) > 70
-                                    ? "text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]"
-                                    : Number(selectedNode.riskScore) > 30
-                                      ? "text-amber-400"
-                                      : "text-emerald-400"
-                                }`}
+                                className={`text-3xl font-bold tracking-tight transition-colors ${getRiskBreatheClass()}`}
                               >
-                                {selectedNode.riskScore}%
+                                {selectedNode.riskScore}
+                              </span>
+                              <span className="text-sm font-bold text-zinc-500">
+                                %
                               </span>
                             </div>
                           </div>
 
-                          {/* Entity Classification */}
-                          <div className="hud-field p-2.5 flex flex-col justify-between">
-                            <span className="text-[10px] text-zinc-500 font-mono font-bold tracking-wider">
+                          <div className="hud-field p-3.5 flex flex-col justify-between">
+                            <span className="text-xs font-display font-bold tracking-[0.14em] uppercase text-zinc-400">
                               ENTITY TYPE
                             </span>
-                            <div className="mt-1">
-                              <span className="text-xs font-bold font-mono text-emerald-400 tracking-wide uppercase truncate block">
+                            <div className="mt-2">
+                              <span
+                                className={`text-sm font-bold font-display tracking-wider uppercase truncate block transition-colors ${getEntityTypeBreatheClass()}`}
+                              >
                                 {selectedNode.type || "ENTITY"}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* 3. TACTICAL STATUS */}
-                        <div className="hud-field p-2.5">
-                          <span className="text-[10px] text-zinc-500 font-mono font-bold tracking-wider block mb-1">
+                        {/* Operational Status */}
+                        <div className="hud-field p-3.5">
+                          <span className="text-xs font-display font-bold tracking-[0.14em] uppercase text-zinc-400 block mb-1">
                             OPERATIONAL STATUS
                           </span>
                           <div
-                            className={`flex items-center text-xs font-mono font-semibold ${
-                              selectedNode.status?.includes("VICTIM")
-                                ? "text-emerald-400"
-                                : selectedNode.status?.includes("SHATTER")
-                                  ? "text-rose-400 animate-pulse"
-                                  : "text-amber-400"
-                            }`}
+                            className={`flex items-center text-sm font-semibold mt-1 font-display transition-colors ${getOperationalStatusBreatheClass()}`}
                           >
-                            <AlertOctagon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                            <AlertOctagon className="w-4 h-4 mr-2 shrink-0 opacity-80" />
                             <span className="truncate">
                               {selectedNode.status}
                             </span>
                           </div>
                         </div>
 
-                        {/* 4. JURISDICTION SECTOR */}
-                        <div className="hud-field p-2.5">
-                          <span className="text-[10px] text-zinc-500 font-mono font-bold tracking-wider block mb-1">
+                        {/* Jurisdiction Sector */}
+                        <div className="hud-field p-3.5">
+                          <span className="text-xs font-display font-bold tracking-[0.14em] uppercase text-zinc-400 block mb-1">
                             JURISDICTION SECTOR
                           </span>
-                          <div className="flex items-center text-xs font-mono text-zinc-300">
-                            <MapPin className="w-3.5 h-3.5 mr-1.5 text-zinc-500 shrink-0" />
+                          <div className="flex items-center text-sm text-zinc-300 mt-1 font-display">
+                            <MapPin className="w-4 h-4 mr-2 text-zinc-400 shrink-0" />
                             <span className="truncate">
                               {selectedNode.district || "Pan-India Grid"}
                             </span>
                           </div>
                         </div>
 
-                        {/* 5. SEIZED SYSTEM UID */}
-                        <div className="hud-field p-2.5">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] text-zinc-500 font-mono font-bold tracking-wider">
+                        {/* System UID */}
+                        <div className="hud-field p-3.5">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-display font-bold tracking-[0.14em] uppercase text-zinc-400">
                               SYSTEM UID
                             </span>
-                            <span className="text-[9px] font-mono text-zinc-600">
+                            <span className="text-xs font-display text-zinc-500 font-semibold">
                               SEC 63(4)
                             </span>
                           </div>
-                          <div className="text-[10px] font-mono text-zinc-400 bg-black/40 px-2 py-1.5 rounded border border-zinc-800/80 truncate select-all">
+                          <div className="text-xs font-display font-medium text-zinc-300 bg-black/80 px-2.5 py-2 rounded border border-white/10 truncate select-all tracking-wider">
                             {selectedNode.id}
                           </div>
                         </div>
 
-                        {/* 6. CORRIDOR PATHFINDER */}
-                        <div className="pt-2 border-t border-zinc-800/80">
+                        {/* Corridor Pathfinder */}
+                        <div className="pt-2 border-t border-white/10">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] text-zinc-500 font-semibold tracking-wider font-mono">
+                            <span className="text-xs font-display font-bold tracking-[0.14em] uppercase text-zinc-400">
                               CORRIDOR PATHFINDER
                             </span>
                             <span
-                              className={`text-[9px] font-mono tracking-widest ${
+                              className={`text-xs font-display font-bold tracking-widest ${
                                 routeOrigin && routeTarget
-                                  ? "text-emerald-400 font-bold"
+                                  ? "text-white"
                                   : routeOrigin || routeTarget
-                                    ? "text-amber-400 animate-pulse"
+                                    ? "text-zinc-300 animate-pulse"
                                     : "text-zinc-600"
                               }`}
                             >
                               {routeOrigin && routeTarget
-                                ? "LOCKED"
+                                ? "[LOCKED]"
                                 : routeOrigin || routeTarget
-                                  ? "1/2 ARMED"
-                                  : "STANDBY"}
+                                  ? "[1/2 ARMED]"
+                                  : "[STANDBY]"}
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 font-mono">
-                            {/* ORIGIN BUTTON */}
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* Origin Button */}
                             {(() => {
                               const resolvedId =
                                 selectedNode.rawId !== undefined
@@ -834,29 +1120,29 @@ export default function AppShell({ children }) {
                               return (
                                 <button
                                   onClick={handleToggleOrigin}
-                                  className={`cursor-target flex items-center justify-between px-2.5 py-2 rounded text-[11px] font-bold border transition-all ${
+                                  className={`cursor-target flex items-center justify-between px-3 py-2 rounded-md text-xs font-display font-bold tracking-wider uppercase border transition-all ${
                                     isOriginSet
-                                      ? "bg-amber-500/15 border-amber-500 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-                                      : "bg-zinc-950/70 hover:bg-zinc-900 border-zinc-800 hover:border-amber-500/50 text-zinc-400 hover:text-amber-300"
+                                      ? "bg-white text-black border-white shadow-[0_0_14px_rgba(255,255,255,0.35)]"
+                                      : "bg-black/60 hover:bg-white/10 border-white/10 hover:border-white/30 text-zinc-300"
                                   }`}
                                 >
                                   <div className="flex items-center space-x-1.5 truncate">
                                     <CircleDot
                                       className={`w-3.5 h-3.5 shrink-0 ${
                                         isOriginSet
-                                          ? "text-amber-400 animate-pulse"
+                                          ? "text-black"
                                           : "text-zinc-500"
                                       }`}
                                     />
-                                    <span className="truncate">
+                                    <span className="truncate font-display">
                                       {isOriginSet ? "ORIGIN" : "SET SRC"}
                                     </span>
                                   </div>
                                   <span
-                                    className={`text-[9px] px-1 py-0.5 rounded border ${
+                                    className={`text-xs font-display px-1.5 py-0.5 rounded border ${
                                       isOriginSet
-                                        ? "border-amber-400/40 bg-amber-400/20 text-amber-300"
-                                        : "border-zinc-800 text-zinc-600"
+                                        ? "border-black bg-zinc-200 text-black font-bold"
+                                        : "border-white/15 text-zinc-400"
                                     }`}
                                   >
                                     A
@@ -865,7 +1151,7 @@ export default function AppShell({ children }) {
                               );
                             })()}
 
-                            {/* TARGET BUTTON */}
+                            {/* Target Button */}
                             {(() => {
                               const resolvedId =
                                 selectedNode.rawId !== undefined
@@ -902,29 +1188,29 @@ export default function AppShell({ children }) {
                               return (
                                 <button
                                   onClick={handleToggleTarget}
-                                  className={`cursor-target flex items-center justify-between px-2.5 py-2 rounded text-[11px] font-bold border transition-all ${
+                                  className={`cursor-target flex items-center justify-between px-3 py-2 rounded-md text-xs font-display font-bold tracking-wider uppercase border transition-all ${
                                     isTargetSet
-                                      ? "bg-rose-500/15 border-rose-500 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]"
-                                      : "bg-zinc-950/70 hover:bg-zinc-900 border-zinc-800 hover:border-rose-500/50 text-zinc-400 hover:text-rose-300"
+                                      ? "bg-white text-black border-white shadow-[0_0_14px_rgba(255,255,255,0.35)]"
+                                      : "bg-black/60 hover:bg-white/10 border-white/10 hover:border-white/30 text-zinc-300"
                                   }`}
                                 >
                                   <div className="flex items-center space-x-1.5 truncate">
                                     <Crosshair
                                       className={`w-3.5 h-3.5 shrink-0 ${
                                         isTargetSet
-                                          ? "text-rose-400 animate-pulse"
+                                          ? "text-black"
                                           : "text-zinc-500"
                                       }`}
                                     />
-                                    <span className="truncate">
+                                    <span className="truncate font-display">
                                       {isTargetSet ? "TARGET" : "SET TGT"}
                                     </span>
                                   </div>
                                   <span
-                                    className={`text-[9px] px-1 py-0.5 rounded border ${
+                                    className={`text-xs font-display px-1.5 py-0.5 rounded border ${
                                       isTargetSet
-                                        ? "border-rose-400/40 bg-rose-400/20 text-rose-300"
-                                        : "border-zinc-800 text-zinc-600"
+                                        ? "border-black bg-zinc-200 text-black font-bold"
+                                        : "border-white/15 text-zinc-400"
                                     }`}
                                   >
                                     B
@@ -935,16 +1221,16 @@ export default function AppShell({ children }) {
                           </div>
                         </div>
 
-                        {/* 7. PRIMARY ACTION BUTTON */}
+                        {/* Rap Sheet Action Button */}
                         <button
                           onClick={() =>
                             handleDownloadTargetRapSheet(
                               selectedNode.rawId,
-                              selectedNode.name
+                              selectedNode.name,
                             )
                           }
                           disabled={downloading}
-                          className="cursor-target w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold py-2.5 px-3 rounded-lg text-xs font-mono transition-all flex items-center justify-center space-x-2 shadow-lg shadow-emerald-950/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.25)] active:scale-[0.99] disabled:bg-zinc-800 disabled:text-zinc-500"
+                          className="cursor-target w-full mt-3 bg-white hover:bg-zinc-200 text-black font-display font-bold tracking-[0.14em] uppercase py-3 px-4 rounded-lg text-xs transition-all flex items-center justify-center space-x-2 shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:bg-black/40 disabled:text-zinc-600 disabled:border-white/10"
                         >
                           <Download className="w-4 h-4" />
                           <span>
@@ -955,14 +1241,14 @@ export default function AppShell({ children }) {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-64 text-zinc-600 space-y-2">
-                        <ScanLine className="w-8 h-8 opacity-30 animate-pulse text-emerald-500" />
-                        <p className="text-xs font-semibold tracking-wider text-zinc-400">
+                      <div className="flex flex-col items-center justify-center h-64 text-zinc-500 space-y-3 font-display">
+                        <ScanLine className="w-9 h-9 opacity-40 text-zinc-400 animate-pulse" />
+                        <p className="text-xs font-display font-bold tracking-[0.16em] uppercase text-zinc-300">
                           AWAITING NODE SELECTION
                         </p>
-                        <span className="text-xs text-zinc-500 text-center px-4">
-                          Click any suspect, vehicle, or account to inspect
-                          forensic telemetry.
+                        <span className="text-xs text-zinc-500 text-center px-4 leading-relaxed font-sans">
+                          Click any suspect, vehicle, or account node on the
+                          canvas to inspect forensic telemetry.
                         </span>
                       </div>
                     )}
@@ -973,9 +1259,10 @@ export default function AppShell({ children }) {
           )}
         </aside>
 
+        {/* Inspector Toggle Button */}
         <button
           onClick={toggleInspector}
-          className="absolute right-0 top-1/2 -translate-y-1/2 bg-zinc-900 border-y border-l border-zinc-800 p-1.5 rounded-l text-zinc-400 hover:text-zinc-200 z-30"
+          className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/80 border-y border-l border-white/10 p-2 rounded-l-md text-zinc-300 hover:text-white backdrop-blur-md z-30 font-display"
         >
           <ChevronRight
             className={`w-4 h-4 transition-transform duration-300 ${
@@ -985,113 +1272,138 @@ export default function AppShell({ children }) {
         </button>
       </div>
 
-      {/* Floating Node Inventory Drawer - MOUNTED VIA PORTAL TO PREVENT IFRAME OCCLUSION */}
+      {/* Floating Node Inventory Drawer: Full Chakra Petch Font Hierarchy */}
       {trayOpen &&
         typeof document !== "undefined" &&
         createPortal(
           <div
             ref={trayRef}
             id="panoptes-node-inventory-drawer"
-            className="fixed left-20 bottom-10 z-[99999] w-84 max-h-[72vh] flex flex-col bg-zinc-950 border border-zinc-700/90 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl animate-in fade-in slide-in-from-left-4 font-mono select-none"
+            className="fixed left-20 bottom-12 z-[99999] w-[430px] max-h-[72vh] flex flex-col bg-black/85 border border-white/15 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.98)] backdrop-blur-2xl animate-in fade-in slide-in-from-left-4 font-display select-none"
           >
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900/60 rounded-t-xl">
-              <div className="flex items-center space-x-2">
-                <Boxes className="w-4 h-4 text-purple-400" />
-                <span className="text-xs font-bold text-zinc-100 tracking-wider">
+            {/* Header: All elements strictly on a single row */}
+            <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/10 bg-black/60 rounded-t-xl gap-2 shrink-0">
+              <div className="flex items-center space-x-2 shrink-0">
+                <Boxes className="w-4 h-4 text-white shrink-0" />
+                <span className="text-xs font-display font-bold tracking-[0.14em] uppercase text-white whitespace-nowrap">
                   NODE INVENTORY
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-950/80 border border-purple-700 text-purple-300 font-bold">
-                  HIDDEN : {String(hiddenCount).padStart(2, "0")}
-                </span>
               </div>
-              <div className="flex items-center space-x-2">
+
+              <div className="flex items-center space-x-2 shrink-0">
+                {/* 1-Line Monochrome Hidden Counter Badge */}
+                <span className="text-xs px-2.5 py-1 rounded bg-white/10 border border-white/20 text-white font-display font-bold whitespace-nowrap shrink-0 leading-none flex items-center tracking-wider">
+                  HIDDEN: {String(hiddenCount).padStart(2, "0")}
+                </span>
+
+                {/* 1-Line Monochrome Restore All Button */}
                 {hiddenCount > 0 && (
                   <button
                     onClick={handleRestoreAllNodes}
-                    title="Restore all hidden entities to active mesh"
-                    className="text-[10px] text-zinc-300 hover:text-emerald-400 font-bold transition-colors flex items-center space-x-1 px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700"
+                    title="Restore all hidden entities"
+                    className="text-xs text-white hover:text-black hover:bg-white font-bold font-display transition-colors flex items-center space-x-1.5 px-2.5 py-1 bg-white/10 rounded border border-white/20 uppercase whitespace-nowrap shrink-0 leading-none tracking-wider"
                   >
-                    <RotateCcw className="w-3 h-3 mr-1" />
-                    <span>ALL</span>
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                    <span>RESTORE ALL</span>
                   </button>
                 )}
+
                 <button
                   onClick={() => setTrayOpen(false)}
-                  className="p-1 text-zinc-400 hover:text-zinc-100 rounded transition-colors"
+                  className="p-1 text-zinc-400 hover:text-white rounded transition-colors shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Hidden Entities List */}
+            {/* Content: Color-Coded Entity Badges with Clean B&W RESTORE Buttons */}
             <div className="p-3 overflow-y-auto max-h-96 space-y-2">
               {hiddenCount === 0 ? (
                 <div className="py-8 text-center text-zinc-500 flex flex-col items-center justify-center space-y-2">
-                  <Boxes className="w-9 h-9 opacity-25 text-purple-400 mb-1" />
-                  <span className="text-xs font-bold tracking-wider text-zinc-300">
+                  <Boxes className="w-9 h-9 opacity-30 text-zinc-400 mb-1" />
+                  <span className="text-xs font-display font-bold tracking-[0.16em] uppercase text-zinc-300 whitespace-nowrap">
                     TRAY EMPTY
                   </span>
-                  <p className="text-[11px] text-zinc-500 max-w-[220px] leading-relaxed">
-                    Click the <span className="text-rose-400 font-bold">[×]</span> on any expanded node card to temporarily stash it from analytical view.
+                  <p className="text-xs text-zinc-500 max-w-[240px] leading-relaxed font-sans">
+                    Click the stash icon on any node card to temporarily remove
+                    it from analytical view.
                   </p>
                 </div>
               ) : (
-                hiddenNodes.map((node) => (
-                  <div
-                    key={node.id}
-                    className="p-2.5 bg-zinc-900/80 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-all flex items-center justify-between group"
-                  >
-                    <div className="truncate mr-3 space-y-0.5">
-                      <div className="flex items-center space-x-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
-                        <span className="text-xs font-bold text-zinc-100 truncate block">
-                          {node.name}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-zinc-400 flex items-center space-x-2">
-                        <span>{node.type}</span>
-                        <span>•</span>
-                        <span className="text-amber-400">
-                          {node.riskScore
-                            ? `RISK ${node.riskScore}%`
-                            : "VERIFIED"}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleRestoreNode(node.id)}
-                      className="cursor-target px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold tracking-wider transition-colors shrink-0"
+                hiddenNodes.map((node) => {
+                  const styles = getNodeDrawerStyles(node);
+                  return (
+                    <div
+                      key={node.id}
+                      onClick={() => {
+                        setSelectedNode(node);
+                        setTrayOpen(false);
+                      }}
+                      className={`p-3 border rounded-lg transition-all flex items-center justify-between backdrop-blur-md cursor-pointer hover:scale-[1.01] ${styles.card}`}
                     >
-                      RESTORE
-                    </button>
-                  </div>
-                ))
+                      <div className="truncate mr-3 space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${styles.dot}`}
+                          />
+                          <span
+                            className={`text-xs font-display font-bold tracking-wide truncate block ${styles.name}`}
+                          >
+                            {node.name}
+                          </span>
+                        </div>
+                        <div className="text-xs flex items-center space-x-2">
+                          <span className={`font-display text-[11px] tracking-wider uppercase ${styles.typeText}`}>
+                            {node.type}
+                          </span>
+                          <span className="text-zinc-600 font-display">•</span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-display font-bold tracking-wider uppercase border ${styles.badge}`}
+                          >
+                            {node.riskScore
+                              ? `RISK ${node.riskScore}%`
+                              : "VERIFIED"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Monochrome B&W Individual Restore Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRestoreNode(node.id);
+                        }}
+                        className="cursor-target px-3 py-1 bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 rounded text-xs font-display font-bold tracking-wider uppercase transition-colors shrink-0 whitespace-nowrap"
+                      >
+                        RESTORE
+                      </button>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
-      {/* Floating AI Pattern Telemetry Card */}
+      {/* Floating AI Pattern Card */}
       {showHopfieldScore &&
         isAuthenticated &&
         activeCaseId &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="fixed top-16 right-88 z-[99998] w-92 bg-zinc-950/95 border border-emerald-500/40 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.92)] backdrop-blur-2xl font-mono animate-in fade-in slide-in-from-top-3 select-none">
-            {/* Header Strip */}
-            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5 mb-3">
+          <div className="fixed top-16 right-96 z-[99998] w-96 bg-black/90 border border-white/20 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.98)] backdrop-blur-2xl select-none font-display">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5 mb-3 font-display">
               <div className="flex items-center space-x-2">
-                <BrainCircuit className="w-4 h-4 text-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-zinc-100 tracking-wider">
+                <BrainCircuit className="w-4 h-4 text-white animate-pulse" />
+                <span className="text-xs font-bold tracking-[0.14em] uppercase text-white font-display">
                   AI SYNDICATE PATTERN MATCH
                 </span>
               </div>
               <button
                 onClick={() => setShowHopfieldScore(false)}
-                className="p-1 text-zinc-500 hover:text-zinc-200 rounded transition-colors"
+                className="p-1 text-zinc-400 hover:text-white rounded transition-colors"
                 title="Close"
               >
                 <X className="w-3.5 h-3.5" />
@@ -1099,61 +1411,60 @@ export default function AppShell({ children }) {
             </div>
 
             {loadingArchetype ? (
-              <div className="py-6 flex flex-col items-center justify-center space-y-2 text-zinc-500">
-                <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-[11px] text-zinc-400">
+              <div className="py-6 flex flex-col items-center justify-center space-y-2 text-zinc-500 font-display">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-zinc-400 font-display">
                   CORRELATING CRIME PATTERNS ACROSS ARCHIVES...
                 </span>
               </div>
             ) : archetypeData ? (
-              <div className="space-y-3">
-                {/* Match Confidence Gauge */}
-                <div className="hud-field p-3 bg-zinc-900/60 border border-zinc-800 rounded-lg">
-                  <div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold mb-1.5">
+              <div className="space-y-3 font-display">
+                <div className="hud-field p-3">
+                  <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-2 font-display tracking-wider">
                     <span>PATTERN MATCH CONFIDENCE</span>
-                    <span className="text-emerald-400 text-xs font-bold font-mono">
+                    <span
+                      className={`text-base font-bold font-display ${
+                        Number(archetypeData.confidence_score) >= 70
+                          ? "breathe-red-t1"
+                          : "breathe-amber-t1"
+                      }`}
+                    >
                       {archetypeData.confidence_score}%
                     </span>
                   </div>
-
-                  {/* Visual Gauge Bar */}
-                  <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-zinc-800">
+                  <div className="w-full bg-black/80 h-2 rounded-full overflow-hidden border border-white/10">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                      className="h-full bg-gradient-to-r from-zinc-500 to-white transition-all duration-500"
                       style={{
                         width: `${Math.min(
                           100,
-                          Math.max(0, archetypeData.confidence_score || 0)
+                          Math.max(0, archetypeData.confidence_score || 0),
                         )}%`,
                       }}
                     />
                   </div>
-                  <div className="flex justify-between text-[9px] text-zinc-500 mt-1.5 font-mono">
+                  <div className="flex justify-between text-xs text-zinc-500 mt-1.5 font-display">
                     <span>WEAK CORRELATION</span>
                     <span>HIGH M.O. MATCH</span>
                   </div>
                 </div>
 
-                {/* Modus Operandi (M.O.) Box */}
-                <div className="hud-field p-2.5">
-                  <span className="text-[9px] text-zinc-500 font-bold tracking-wider block mb-1">
+                <div className="hud-field p-3">
+                  <span className="text-xs font-display font-bold tracking-wider uppercase text-zinc-500 block mb-1">
                     DETECTED MODUS OPERANDI (M.O.)
                   </span>
-                  <div className="text-xs font-bold text-zinc-100 leading-snug">
+                  <div className="text-sm font-bold text-white leading-snug font-display">
                     {archetypeData.archetype_name}
                   </div>
-                  <div className="mt-2 flex items-center space-x-2 text-[10px]">
-                    <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-                      {archetypeData.archetype_code?.replace(
-                        "ARCH_",
-                        "M.O. CODE: "
-                      )}
+                  <div className="mt-2.5 flex items-center space-x-2 text-xs">
+                    <span className="px-2 py-0.5 rounded bg-black/80 border border-white/15 text-zinc-200 font-bold font-display">
+                      {archetypeData.archetype_code?.replace("ARCH_", "CODE: ")}
                     </span>
                     <span
-                      className={`px-1.5 py-0.5 rounded font-bold border ${
+                      className={`px-2 py-0.5 rounded font-bold border border-white/25 bg-white/10 font-display ${
                         archetypeData.threat_level?.includes("CRITICAL")
-                          ? "bg-rose-950/80 border-rose-700 text-rose-300"
-                          : "bg-amber-950/80 border-amber-700 text-amber-300"
+                          ? "breathe-red-t3"
+                          : "breathe-amber-t3"
                       }`}
                     >
                       {archetypeData.threat_level}
@@ -1161,84 +1472,59 @@ export default function AppShell({ children }) {
                   </div>
                 </div>
 
-                {/* Actionable Legal Directive */}
-                <div className="hud-field p-2.5 bg-emerald-950/10 border border-emerald-500/20">
-                  <div className="flex items-center text-[10px] text-emerald-400 font-bold mb-1">
-                    <ShieldAlert className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                <div className="hud-field p-3">
+                  <div className="flex items-center text-xs font-display font-bold tracking-wider text-white mb-1.5 uppercase">
+                    <ShieldAlert className="w-4 h-4 mr-1.5 shrink-0" />
                     <span>RECOMMENDED LEGAL ACTION</span>
                   </div>
-                  <p className="text-[11px] text-zinc-300 leading-snug">
+                  <p className="text-xs text-zinc-300 leading-relaxed font-sans">
                     {archetypeData.statutory_action}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="py-4 text-center text-zinc-500 text-xs">
+              <div className="py-4 text-center text-zinc-500 text-xs font-display">
                 No matching syndicate pattern found for case [{activeCaseId}].
               </div>
             )}
           </div>,
-          document.body
+          document.body,
         )}
-
-      {/* Statutory Footer */}
-      <footer className="h-7 border-t border-zinc-800 bg-zinc-950 px-4 flex items-center justify-between text-xs text-zinc-500 shrink-0 font-mono relative z-40">
-        <div className="flex items-center space-x-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-zinc-300 font-semibold text-[11px]">
-            BSA 2023 SEC 63(4) CERTIFIED
-          </span>
-          <span className="text-zinc-600">|</span>
-          <span className="text-[11px]">
-            {evidenceMode === "uploaded"
-              ? "CUSTOM EVIDENCE INGESTION"
-              : "AIRGAP SOVEREIGN MESH"}
-          </span>
-        </div>
-
-        <div className="flex items-center space-x-2 text-zinc-400">
-          <span className="text-zinc-500 text-[10px]">EVIDENTIARY HASH:</span>
-          <span className="text-emerald-400/90 text-[10px] bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
-            {uploadedExhibitHash ||
-              "2c7d1fd3af452a4b368d47284790ff3b7fbe7b66ee24456fc6c208871b804c15"}
-          </span>
-        </div>
-      </footer>
 
       {/* Multipart File Upload Modal */}
       {uploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-xl w-[520px] max-w-full p-6 space-y-4 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm font-mono">
-                <FileUp className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-2xl animate-in fade-in duration-150 font-display">
+          <div className="bg-black/90 border border-white/20 rounded-xl w-[560px] max-w-full p-6 space-y-4 shadow-[0_25px_70px_rgba(0,0,0,0.98)] relative font-display">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center space-x-2 text-white font-display font-bold tracking-wider text-sm uppercase">
+                <FileUp className="w-5 h-5 text-zinc-300" />
                 <span>EVIDENTIARY EXHIBIT INGESTION (UP TO 11 FILES)</span>
               </div>
               <button
                 onClick={() => setUploadModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-200 p-1"
+                className="text-zinc-400 hover:text-white p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs text-zinc-300 leading-relaxed font-sans">
               Upload raw seized files (
-              <span className="text-amber-400 font-mono">.csv</span> /{" "}
-              <span className="text-amber-400 font-mono">.txt</span>), such as
-              DoT CDR telecom records, IMPS banking logs, or extracted chats.
+              <span className="text-white font-bold">.csv</span> /{" "}
+              <span className="text-white font-bold">.txt</span>), such as DoT
+              CDR telecom records, IMPS banking logs, or extracted chats.
             </p>
 
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-zinc-800 hover:border-emerald-500/60 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-zinc-900/30 group"
+                className="border-2 border-dashed border-white/15 hover:border-white/40 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-white/[0.02] hover:bg-white/[0.05] group"
               >
-                <Upload className="w-8 h-8 text-zinc-600 group-hover:text-emerald-400 transition-colors mb-2" />
-                <span className="text-xs font-semibold text-zinc-300">
+                <Upload className="w-8 h-8 text-zinc-500 group-hover:text-white transition-colors mb-2" />
+                <span className="text-xs font-display font-bold tracking-wider text-white uppercase">
                   Click to select files (file1 to file11)
                 </span>
-                <span className="text-[10px] text-zinc-500 mt-1">
+                <span className="text-xs text-zinc-500 mt-1 font-display">
                   Accepts CSV, TXT (Maximum 11 files)
                 </span>
                 <input
@@ -1252,19 +1538,19 @@ export default function AppShell({ children }) {
               </div>
 
               {selectedFiles.length > 0 && (
-                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 text-xs">
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 text-xs font-display">
                   {selectedFiles.map((file, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-2 bg-zinc-900 rounded border border-zinc-800 text-[11px]"
+                      className="flex items-center justify-between p-2 bg-black/60 rounded border border-white/10 text-xs"
                     >
-                      <span className="text-zinc-300 truncate max-w-[320px]">
-                        <span className="text-emerald-400 font-bold mr-2 font-mono">
+                      <span className="text-zinc-200 truncate max-w-[340px]">
+                        <span className="text-white font-bold mr-2">
                           [{idx + 1}]
                         </span>
                         {file.name}
                       </span>
-                      <span className="text-zinc-500 text-[10px] font-mono">
+                      <span className="text-zinc-400 text-xs">
                         {(file.size / 1024).toFixed(1)} KB
                       </span>
                     </div>
@@ -1272,22 +1558,22 @@ export default function AppShell({ children }) {
                 </div>
               )}
 
-              <div className="flex items-center justify-end space-x-3 pt-2 border-t border-zinc-800">
+              <div className="flex items-center justify-end space-x-3 pt-2 border-t border-white/10 font-display">
                 <button
                   type="button"
                   onClick={() => setUploadModalOpen(false)}
-                  className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200"
+                  className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white font-display"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploading || selectedFiles.length === 0}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 text-zinc-950 font-bold text-xs rounded transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-white hover:bg-zinc-200 disabled:bg-white/10 disabled:text-zinc-600 text-black font-bold text-xs uppercase tracking-wider rounded transition-colors flex items-center space-x-2 shadow-md font-display"
                 >
                   {uploading ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                       <span>PARSING CSR MATRIX...</span>
                     </>
                   ) : (

@@ -30,28 +30,20 @@ export const useStore = create((set) => ({
   trayOpen: false,
   setTrayOpen: (open) => set({ trayOpen: open }),
   hiddenNodes: [],
-
   hideNode: (nodeData) => set((state) => {
-
-    
-
     const list = state.hiddenNodes || [];
     const clearOrigin = String(state.routeOrigin?.id) === String(nodeData.id) ? null : state.routeOrigin;
     const clearTarget = String(state.routeTarget?.id) === String(nodeData.id) ? null : state.routeTarget;
-
-    console.log('[Panoptes Store] Stashing node into inventory:', nodeData);
     return {
       hiddenNodes: [...list.filter((n) => String(n.id) !== String(nodeData.id)), nodeData],
       routeOrigin: clearOrigin,
       routeTarget: clearTarget,
-      trayOpen: true // Forces drawer open immediately
+      trayOpen: true
     };
   }),
-
   restoreNode: (nodeId) => set((state) => ({
     hiddenNodes: (state.hiddenNodes || []).filter((n) => String(n.id) !== String(nodeId))
   })),
-
   restoreAllNodes: () => set({ 
     hiddenNodes: [],
     trayOpen: false 
@@ -94,7 +86,6 @@ export const useStore = create((set) => ({
     routeOrigin: null,
     routeTarget: null
   }),
-
   logout: () => set({
     isAuthenticated: false,
     activeCaseId: '',
@@ -104,9 +95,9 @@ export const useStore = create((set) => ({
     evidenceMode: 'database',
     uploadedExhibitHash: null,
     hiddenNodes: [],
-    trayOpen: false
+    trayOpen: false,
+    inspectorOpen: false
   }),
-
   setActiveCase: (id) => set({ 
     activeCaseId: id, 
     routeOrigin: null, 
@@ -116,23 +107,24 @@ export const useStore = create((set) => ({
     uploadedExhibitHash: null,
     hiddenNodes: [],
     trayOpen: false,
-    archetypeData: null // Reset per case
+    archetypeData: null,
+    inspectorOpen: false // Collapses panel whenever a case is queried
   }),
-
   setModule: (module) => set((state) => ({ 
     activeModule: module,
-    trayOpen: module === 'network' ? state.trayOpen : false
+    trayOpen: module === 'network' ? state.trayOpen : false,
+    // Collapses panel when leaving the network module to any of the other three
+    inspectorOpen: (state.activeModule === 'network' && module !== 'network')
+      ? false
+      : (module !== 'network' ? false : state.inspectorOpen)
   })),
-
   toggleInspector: () => set((state) => ({ inspectorOpen: !state.inspectorOpen })),
+  setInspectorOpen: (open) => set({ inspectorOpen: open }),
   setSelectedNode: (nodeData) => set({ selectedNode: nodeData, inspectorOpen: true }),
-
   setRouteOrigin: (node) => set({ routeOrigin: node }),
   setRouteTarget: (node) => set({ routeTarget: node }),
   clearRoute: () => set({ routeOrigin: null, routeTarget: null }),
-
   setJurisdictionScope: (scope) => set({ jurisdictionScope: scope }),
-
   setUploadedEvidence: (files, hash, entityMap) => set({
     evidenceMode: 'uploaded',
     uploadedFiles: files,
@@ -142,9 +134,9 @@ export const useStore = create((set) => ({
     routeTarget: null,
     selectedNode: null,
     hiddenNodes: [],
-    trayOpen: false
+    trayOpen: false,
+    inspectorOpen: false
   }),
-
   resetToDatabaseMode: () => set({
     evidenceMode: 'database',
     uploadedFiles: [],
@@ -154,6 +146,7 @@ export const useStore = create((set) => ({
     routeTarget: null,
     selectedNode: null,
     hiddenNodes: [],
-    trayOpen: false
+    trayOpen: false,
+    inspectorOpen: false
   })
 }));
